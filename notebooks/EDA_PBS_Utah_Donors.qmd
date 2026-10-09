@@ -63,7 +63,7 @@ The 25% target is to be confirmed once EDA sets the baseline conversion rate.
 **Team:** Erin Bednarik, Benjamin Hogan, Samantha Huang, and Kate Klinger, with support from Jason Hoggan and Natalie Benoy at PBS Utah. **Milestones:** initial results November 11, 2026; final project December 2, 2026.
 
 ### How this EDA frames the analytic problem
-The unit of analysis is the **donor-year**. At the end of each fiscal year *t*, every donor who gave in FY *t* but gave **less than \$1,200** is eligible. Using only information available by the end of FY *t*, predict:
+The unit of analysis is the **donor-year**. At the end of each fiscal year *t*, every person who has **ever given** (Unite or legacy history) and gave **less than \$1,200 in FY *t*** is eligible. That covers **active donors** (gave in FY *t*) and **lapsed donors** (gave before, but not in FY *t*). Using only information available by the end of FY *t*, predict:
 
 - **12-month conversion:** giving of \$1,200 or more in FY *t + 1*
 - **Longer-term conversion:** \$1,200 or more in any of FY *t + 1* to *t + 3*, or *t + 1* to *t + 5*
@@ -77,9 +77,10 @@ Because gift officers can cultivate about 1,000 donors a year (eight portfolios 
 4. Which parts of a donor's history are associated with converting to major giving?
 5. Which constituent fields are usable, and which are snapshot fields that would leak the future?
 6. Do solicitations or Passport viewing add information beyond giving history?
-7. What does the randomized cultivation holdout reveal about the effect of officer contact?
-8. How well do simple ranking rules already find converters, i.e., what must a model beat?
-9. Do the problem statement's assumptions (major-donor share, the 25% recall target, tiers, the 3–5 year window, available inputs) hold in the data?
+7. How do lapsed donors differ from active donors, and is it worth including them?
+8. What does the randomized cultivation holdout reveal about the effect of officer contact?
+9. How well do simple ranking rules already find converters, i.e., what must a model beat?
+10. Do the problem statement's assumptions (major-donor share, the 25% recall target, tiers, the 3–5 year window, available inputs) hold in the data?
 
 ## 2. Setup and data loading
 
@@ -430,7 +431,14 @@ These patterns look like artifacts of how the synthetic data were generated, so 
 
 ### Building the donor-year panel
 
-For each snapshot year *t* (FY2021–FY2025), the panel holds one row per **eligible** donor: gave in FY *t* and gave less than \$1,200. Features use only FY ≤ *t* (Unite years plus legacy history); outcomes use FY *t + 1* onward.
+For each snapshot year *t* (FY2021–FY2025), the panel holds one row per **eligible** donor: anyone who has given at some point through FY *t* (Unite or legacy history) and gave **less than \$1,200 in FY *t***. That includes **lapsed donors**, who gave before but not in FY *t*. Each row gets a status segment:
+
+- **Active:** gave in FY *t*
+- **Lapsed 1–2 yrs:** last gift 1–2 years before FY *t*
+- **Lapsed 3–5 yrs:** last gift 3–5 years before FY *t*
+- **Lapsed 6+ yrs:** last gift 6+ years before FY *t*, almost all legacy-era donors
+
+Features use only FY ≤ *t*; outcomes use FY *t + 1* onward.
 
 ```{python}
 # combined history: legacy household credit (pre-FY2021) + Unite giving (FY2021+)
@@ -443,32 +451,41 @@ mix = person_pay.assign(recurring=person_pay["pledge_gift_type"].eq("Recurring")
 max_gift = gifts.groupby(["donor_id", "fy"])["amount"].max().rename("max_gift")
 soft_years = person_soft.rename(columns={"Soft Credit Constituent ID": "donor_id"})[["donor_id", "fy"]].drop_duplicates()
 
+STATUS = ["Active", "Lapsed 1-2 yrs", "Lapsed 3-5 yrs", "Lapsed 6+ yrs"]
 panel = []
 for t in range(2021, 2026):
-    d = pd.DataFrame(index=wide.index[(wide[t] > 0) & (wide[t] < MAJOR)])
+    past = hist[[c for c in hist.columns if c <= t]]
+    ever = past.gt(0).any(axis=1)
+    d = pd.DataFrame(index=hist.index[ever & (hist[t] < MAJOR)])
     d["fy"] = t
-    d["amount_t"] = wide.loc[d.index, t]
+    d["amount_t"] = hist.loc[d.index, t]
     h = hist.loc[d.index]
+    last_fy = past.loc[d.index].gt(0).iloc[:, ::-1].idxmax(axis=1)
+    d["years_since_last_gift"] = t - last_fy
+    d["last_year_amount"] = [past.at[i, y] for i, y in zip(d.index, last_fy)]
+    d["status"] = np.select([d["years_since_last_gift"] == 0, d["years_since_last_gift"] <= 2, d["years_since_last_gift"] <= 5], STATUS[:3], STATUS[3])
     d["amount_3yr"] = h[[t - 2, t - 1, t]].sum(axis=1)
     d["years_gave_last5"] = (h[[t - 4, t - 3, t - 2, t - 1, t]] > 0).sum(axis=1)
     d["tenure_years"] = t - first_fy.loc[d.index]
     d["former_major"] = (h[[c for c in h.columns if c < t]] >= MAJOR).any(axis=1)
-    d["amount_next"] = wide.loc[d.index, t + 1]
-    future = [c for c in wide.columns if c > t]
+    d["amount_next"] = h[t + 1]
+    future = [c for c in hist.columns if c > t]
     d["conv_12m"] = d["amount_next"] >= MAJOR
-    d["conv_3yr"] = (wide.loc[d.index, future[:3]] >= MAJOR).any(axis=1) if len(future) >= 3 else np.nan
-    d["conv_5yr"] = (wide.loc[d.index, future[:5]] >= MAJOR).any(axis=1) if len(future) >= 5 else np.nan
+    d["conv_3yr"] = (h[future[:3]] >= MAJOR).any(axis=1) if len(future) >= 3 else np.nan
+    d["conv_5yr"] = (h[future[:5]] >= MAJOR).any(axis=1) if len(future) >= 5 else np.nan
     d["retained"] = d["amount_next"] > 0
     panel.append(d.reset_index())
 panel = pd.concat(panel, ignore_index=True)
 panel = panel.merge(mix.reset_index(), on=["donor_id", "fy"], how="left").merge(max_gift.reset_index(), on=["donor_id", "fy"], how="left")
 panel[["any_recurring", "any_upgrade_gift"]] = panel[["any_recurring", "any_upgrade_gift"]].fillna(False).astype(bool)
+panel["max_gift"] = panel["max_gift"].fillna(0)
+panel["status"] = pd.Categorical(panel["status"], STATUS, ordered=True)
 panel["soft_credit_t"] = panel.set_index(["donor_id", "fy"]).index.isin(soft_years.set_index(["donor_id", "fy"]).index)
 prior_soft = soft_years.groupby("donor_id")["fy"].min()
 panel["soft_credit_ever"] = panel["fy"] >= panel["donor_id"].map(prior_soft).fillna(9999)
-panel["donor_type"] = np.where(panel["any_recurring"], "Recurring (sustainer)", "One-time only")
+panel["donor_type"] = np.select([panel["status"] != "Active", panel["any_recurring"]], ["Lapsed (no gift in FY t)", "Recurring (sustainer)"], "One-time only")
 print(f"Panel: {len(panel):,} eligible donor-years, {panel['donor_id'].nunique():,} donors")
-panel[["amount_t", "amount_3yr", "years_gave_last5", "tenure_years", "max_gift", "amount_next"]].describe()
+panel.groupby("status", observed=True).agg(donor_years=("fy", "size"), donors=("donor_id", "nunique")).style.format("{:,}")
 ```
 
 ### Conversion base rates
@@ -508,16 +525,61 @@ plt.tight_layout()
 yr.style.format({"eligible": "{:,}", "converters": "{:,}", "rate": "{:.3%}"})
 ```
 
-**Conversion base rates**
-- **12 months: 0.17%**, or 269 converters across five snapshot years (about 54 a year among about 32,000 eligible donors).
-- **Within 3 years: 0.36%.**
-- **Within 5 years: 0.55%.** Only one snapshot (FY2021) has five future years, so this rate is the least reliable.
-- **Former major donors** (donors who gave \$1,200+ in any earlier year, including legacy history) are only 0.6% of eligible donor-years but **51% of 12-month converters**. They convert at 14% a year, against 0.08% for never-major donors.
-- **FY2025 → FY2026 has the highest rate (0.24%, 80 converters)**, consistent with the FY2026 influx.
+**Conversion base rates** (active + lapsed donors)
+- **12 months: 0.046%**, or 293 converters across five snapshot years (about 59 a year among about 127,000 eligible donors).
+- **Within 3 years: 0.11%.**
+- **Within 5 years: 0.17%.** Only one snapshot (FY2021) has five future years, so this rate is the least reliable.
+- **Former major donors** (donors who gave \$1,200+ in any earlier year, including legacy history) are 0.3% of eligible donor-years but **50% of 12-month converters**. They convert at 7.9% a year, against 0.023% for never-major donors.
+- **FY2025 → FY2026 has the highest rate (0.065%, 88 converters)**, consistent with the FY2026 influx.
 
 *Modeling implications:*
-- Former majors are mostly lapsed donors that staff already know. Results should be reported **separately for never-major donors**, where a model would add the most value.
-- With about 50 positive cases per year, use rare-event metrics (precision, recall, and lift at K; PR-AUC) and validate by time.
+- Former majors are mostly donors staff already know. Results should be reported **separately for never-major donors**, where a model would add the most value.
+- With about 60 positive cases per year in a pool of about 127,000, use rare-event metrics (precision, recall, and lift at K; PR-AUC) and validate by time.
+
+### Active vs. lapsed donors
+
+```{python}
+seg = panel.groupby("status", observed=True).agg(
+    donor_years=("conv_12m", "size"), converters=("conv_12m", "sum"), conv_rate=("conv_12m", "mean"),
+    gave_next_fy=("retained", "mean"), former_major=("former_major", "mean"),
+    median_last_year_amount=("last_year_amount", "median"),
+)
+seg["share of converters"] = seg["converters"] / seg["converters"].sum()
+seg["former-major converters"] = panel[panel["conv_12m"]].groupby("status", observed=True)["former_major"].sum()
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 4))
+axes[0].bar(seg.index.astype(str), seg["conv_rate"], color=BLUE)
+axes[0].yaxis.set_major_formatter(mtick.PercentFormatter(1, decimals=2))
+axes[0].set(title="12-month conversion by donor status", ylabel="Converted to $1,200+")
+axes[1].bar(seg.index.astype(str), seg["gave_next_fy"], color=ORANGE)
+axes[1].yaxis.set_major_formatter(mtick.PercentFormatter(1))
+axes[1].set(title="Gave anything next FY (renewal / reactivation)", ylabel="Share")
+for ax, col, fmt, ycol in [(axes[0], "converters", "{:,} conv.", "conv_rate"), (axes[1], "donor_years", "n={:,}", "gave_next_fy")]:
+    for i, (v, y) in enumerate(zip(seg[col], seg[ycol])):
+        ax.text(i, y, fmt.format(int(v)), ha="center", va="bottom", fontsize=8)
+plt.tight_layout()
+seg.style.format({"donor_years": "{:,}", "converters": "{:,}", "conv_rate": "{:.3%}", "gave_next_fy": "{:.1%}", "former_major": "{:.1%}",
+                  "median_last_year_amount": "${:,.0f}", "share of converters": "{:.0%}", "former-major converters": "{:,}"})
+```
+
+```{python}
+# lapsed converters: how recently did they give, and how much, before lapsing?
+lc = panel[panel["conv_12m"] & (panel["status"] != "Active")]
+lc[["status", "years_since_last_gift", "last_year_amount", "former_major", "tenure_years", "amount_next"]].sort_values("years_since_last_gift").reset_index(drop=True)
+```
+
+**Lapsed donors are a large pool with few conversions, and most of those conversions are returning major donors.**
+- Lapsed donors are **75% of eligible donor-years (472,000) but only 8% of 12-month converters (24 of 293)**. Active donors convert at 0.17%. Lapsed donors convert at 0.013% (1–2 years lapsed), 0.006% (3–5 years), and 0.003% (6+ years).
+- **Only about 3% of lapsed donors give anything the next year**, at every lapse length.
+- **Recently lapsed converters are mostly former majors.** Of the 9 converters lapsed 1–2 years, 8 were former major donors, several of whom had given \$1,200–2,000 in their last giving year. Staff likely already know these donors.
+- **Longer-lapsed converters are almost all never-major donors** (14 of 15) who gave small amounts years ago and returned with a tier-size gift (\$1,200, \$2,000, even \$5,000). Fifteen converters across five years is too few to learn patterns from reliably.
+
+*Modeling implications:*
+- Keep lapsed donors in the eligible population with **status and recency features**: years since last gift and last giving year's amount. That way the model can rank them, and lapsed former majors surface near the top.
+- Report results **by segment** (active vs. lapsed) as well as overall. A single overall metric hides that lapsed donors mostly add volume, not converters.
+- The 6+ year lapsed group (305,000 donor-years, 9 converters) is mostly legacy-era names. Consider capping lapse length, or treating this group as a separate reactivation question.
+
+
 
 ### Context: year-to-year movement between giving bands
 
@@ -540,7 +602,7 @@ Most donors stay in their band from year to year. FY2026's new major donors come
 
 ## 7. Giving history as predictors
 
-Each chart shows the 12-month conversion rate by feature level (FY2021–FY2025 snapshots pooled) and the **lift** over the overall rate. With so few converters, small groups are noisy, so counts are shown.
+Each chart shows the 12-month conversion rate by feature level (FY2021–FY2025 snapshots pooled, active and lapsed donors together). With so few converters, small groups are noisy, so counts are shown. Lifts are relative to the overall rate (0.046%), which is low because most eligible donor-years are lapsed. Compare **rates** across groups rather than reading lifts on their own.
 
 ```{python}
 overall = panel["conv_12m"].mean()
@@ -558,7 +620,7 @@ def conv_table(col, data=None, order=None):
 def conv_plot(ax, col, title, data=None, order=None):
     r = conv_table(col, data, order)
     ax.bar(r.index.astype(str), r["rate"], color=BLUE)
-    ax.yaxis.set_major_formatter(mtick.PercentFormatter(1, decimals=2 if r["rate"].max() < 0.01 else 1))
+    ax.yaxis.set_major_formatter(mtick.PercentFormatter(1, decimals=3 if r["rate"].max() < 0.002 else 2 if r["rate"].max() < 0.01 else 1))
     ax.set(title=title, ylabel="Converted next FY")
     ax.tick_params(axis="x", labelsize=8)
     for i, (v, c, n) in enumerate(zip(r["rate"], r["converters"], r["donor_years"])):
@@ -566,8 +628,8 @@ def conv_plot(ax, col, title, data=None, order=None):
     return r
 
 
-panel["giving_band"] = pd.cut(panel["amount_t"], [0, 50, 100, 250, 599, 1199], labels=["$1-50", "$51-100", "$101-250", "$251-599", "$600-1,199"])
-panel["three_yr_band"] = pd.cut(panel["amount_3yr"], [0, 250, 500, 1000, 1800, 1e9], labels=["<$250", "$250-499", "$500-999", "$1,000-1,799", "$1,800+"])
+panel["giving_band"] = pd.cut(panel["amount_t"], [-1, 0, 50, 100, 250, 599, 1199], labels=["$0 (lapsed)", "$1-50", "$51-100", "$101-250", "$251-599", "$600-1,199"])
+panel["three_yr_band"] = pd.cut(panel["amount_3yr"], [-1, 0, 250, 500, 1000, 1800, 1e9], labels=["$0", "$1-249", "$250-499", "$500-999", "$1,000-1,799", "$1,800+"])
 panel["tenure_band"] = pd.cut(panel["tenure_years"], [-1, 0, 2, 5, 10, 20, 50], labels=["new", "1-2", "3-5", "6-10", "11-20", "21+"])
 
 fig, axes = plt.subplots(2, 2, figsize=(13, 8))
@@ -622,14 +684,14 @@ conv_table("giving_band", nm).style.format({"donor_years": "{:,}", "converters":
 ```
 
 **Giving history is the strongest signal.**
-- **Prior-year giving:** the \$600–1,199 band (essentially donors giving exactly \$600) converts at about **13%**, roughly **75× the overall rate**, and holds about two thirds of all converters. Below \$600, conversion is near zero.
-- **Three-year total:** conversion climbs steeply, from 7% at \$1,000–1,799 to 27% at \$1,800 or more. Donors at \$1,800+ have often been major before.
-- **Consistency and tenure:** donors who gave in all of the last five years, or who have given for 21+ years, convert at about 0.4%. That is low in absolute terms but roughly 20× the donors with the shortest history.
-- **Flags:** **former major** (86× lift), a **soft credit in FY *t*** (20×), and an **upgrade gift in FY *t*** (9×) are strong signals.
-- **Sustainers move the other way.** They give again 92% of the time (one-time donors: 51%), but they **convert less often** (0.11% vs. 0.27%). Sustainers are a steady, mid-level base, while conversions come from one-time donors who give large single gifts.
-- **Never-major donors:** the \$600 band still stands out, at 5.7% (34× lift).
+- **Recent giving:** donors giving \$600–1,199 in FY *t* (essentially exactly \$600) convert at about **13%** and hold 58% of all converters (171 of 293). Below \$600, conversion is under 1%. Lapsed donors (\$0 in FY *t*) convert at 0.005%.
+- **Three-year total:** conversion climbs steeply, from 6.5% at \$1,000–1,799 to 22% at \$1,800 or more. Donors at \$1,800+ have often been major before.
+- **Consistency and tenure:** donors who gave in all of the last five years convert at 0.41%, against 0.003% for those who gave in none. Conversion also rises with tenure, from 0.015% for brand-new donors to 0.06% at 21+ years.
+- **Flags:** a **former major** converts at 7.9%, a donor with a **soft credit in FY *t*** at 3.3%, and one with an **upgrade gift in FY *t*** at 1.5%. The overall rate is 0.046%.
+- **Sustainers vs. one-time donors:** sustainers give again 92% of the time (one-time donors: 51%; lapsed donors: 3%), but they **convert less often** (0.11% vs. 0.27%). Sustainers are a steady, mid-level base, while conversions come from one-time donors who give large single gifts.
+- **Never-major donors:** the \$600 band still stands out, at 5.7%.
 
-*Modeling implication:* Build features for prior-year amount, three-year total, max gift, former-major flag, soft-credit/DAF flag, upgrade flag, recurring flag, years given in the last five, and tenure (including legacy history). The jump at \$600 means tree-based models, or explicit threshold features, will fit better than linear terms in raw dollars.
+*Modeling implication:* Build features for prior-year amount, three-year total, max gift, former-major flag, soft-credit/DAF flag, upgrade flag, recurring flag, years given in the last five, tenure (including legacy history), **donor status, years since last gift, and last giving year's amount**. The jump at \$600 means tree-based models, or explicit threshold features, will fit better than linear terms in raw dollars.
 
 ## 8. Constituent attributes and leakage
 
@@ -682,8 +744,8 @@ plt.tight_layout()
 ```
 
 **Demographics carry a modest signal.**
-- Conversion rises with **age**, from 0.05% under 40 to 0.25% at 80+. Part of this overlaps with tenure: older donors have given longer.
-- **"Unknown" gender** converts at a third of the rate of known gender (0.07% vs. 0.21–0.22%). That probably reflects record completeness rather than gender itself.
+- Conversion rises with **age**, from 0.02% under 40 to 0.06% at 80+. Part of this overlaps with tenure: older donors have given longer.
+- **"Unknown" gender** converts at about two thirds the rate of known gender (0.034% vs. 0.05%). That probably reflects record completeness rather than gender itself.
 - State and spouse-on-file make little difference.
 
 Age is usable after the roll-back. Gender and geography are better used to audit the model's coverage and fairness than as predictors.
@@ -719,34 +781,79 @@ panel.groupby(["giving_band", "responded_t"], observed=True)["conv_12m"].mean().
 - Roughly 0.5–1.1 million solicitations go out each year, about 11 per person solicited. Same-code response rates fell from 2.1% to about 1.3%.
 - Conversion differs across solicitation-count bands, but within each giving band, donors who responded to a campaign in FY *t* convert at about the same rate as those who didn't (e.g., 12% vs. 14% in the \$600–1,199 band).
 
-Who gets solicited is decided by PBS based on giving status, so this table cannot show whether solicitation *causes* giving. Solicitation features are weak candidates.
+Lapsed donors have no response rate in this table, because a response is a payment, and paying would make them active. Who gets solicited is decided by PBS based on giving status, so this table cannot show whether solicitation *causes* giving. Solicitation features are weak candidates.
 
 ## 10. Passport viewing
 
-The table only has rows for constituent-years with viewing; a missing year could mean no account, no consent, or no viewing.
+Passport is PBS's streaming member benefit. The table only has rows for constituent-years with viewing; a missing year could mean no account, no consent, or no viewing. Viewing is kept as a candidate input, with "no record" treated as unknown rather than zero. This section asks four questions:
+
+1. Who has viewing records?
+2. Does viewing persist from year to year?
+3. Does it relate to conversion once giving is known?
+4. For lapsed donors, does still watching signal a return?
 
 ```{python}
-pv = passport.groupby(["constituent_id", "fiscal_year"]).agg(titles=("titles_viewed", "sum"), genres=("genre", "nunique")).reset_index()
+pv = passport.groupby(["constituent_id", "fiscal_year"]).agg(
+    titles=("titles_viewed", "sum"), genres=("genre", "nunique"), pct_watched=("mean_percent_watched", "mean")).reset_index()
 panel = panel.merge(pv, left_on=["donor_id", "fy"], right_on=["constituent_id", "fiscal_year"], how="left").drop(columns=["constituent_id", "fiscal_year"])
+panel["viewed"] = np.where(panel["titles"].notna(), "Viewed", "No record")
 panel["titles_band"] = pd.cut(panel["titles"].fillna(0), [-1, 0, 5, 20, 50, 10_000], labels=["no record", "1-5", "6-20", "21-50", "51+"])
+panel["genre_band"] = pd.cut(panel["genres"].fillna(0), [-1, 0, 2, 4, 10], labels=["no record", "1-2", "3-4", "5+"])
 
-fig, axes = plt.subplots(1, 2, figsize=(13, 4))
-conv_plot(axes[0], "titles_band", "By Passport titles viewed in FY t")
-gp = passport.groupby("genre")["titles_viewed"].sum().sort_values()
-axes[1].barh(gp.index, gp.values / 1e3, color=BLUE)
-axes[1].set(title="Titles viewed by genre, FY2021-26", xlabel="Thousands of titles")
-plt.tight_layout()
-
-viewed = panel["titles"].notna()
-print(f"Spearman corr, titles viewed vs FY t giving (viewers only): {panel.loc[viewed, 'titles'].corr(panel.loc[viewed, 'amount_t'], method='spearman'):.2f}")
-panel.assign(viewed=np.where(viewed, "Viewed", "No record")).groupby(["giving_band", "viewed"], observed=True)["conv_12m"].mean().unstack().style.format("{:.2%}")
+# coverage and year-to-year persistence
+cov = panel.groupby("status", observed=True).agg(donor_years=("viewed", "size"), share_with_viewing=("viewed", lambda x: (x == "Viewed").mean()))
+pv_years = pv.groupby("constituent_id")["fiscal_year"].apply(set)
+persist = {y: np.mean([y + 1 in pv_years[c] for c in pv.loc[pv["fiscal_year"] == y, "constituent_id"]]) for y in range(2021, 2026)}
+print("Share of each year's viewers who also have viewing the next year: "
+      + ", ".join(f"FY{y}: {v:.0%}" for y, v in persist.items()))
+viewers = panel["titles"].notna()
+print(f"Spearman corr, titles viewed vs FY t giving (active viewers): "
+      f"{panel.loc[viewers & (panel['status'] == 'Active'), 'titles'].corr(panel.loc[viewers & (panel['status'] == 'Active'), 'amount_t'], method='spearman'):.2f}")
+cov.style.format({"donor_years": "{:,}", "share_with_viewing": "{:.1%}"})
 ```
 
-**Passport viewing shows no useful association.**
-- Titles viewed are essentially unrelated to giving (Spearman ρ = 0.01 among viewers).
-- Within each giving band, viewers and non-viewers convert at similar rates. The one apparent gap (\$251–599 band) rests on a handful of converters.
+```{python}
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+conv_plot(axes[0], "titles_band", "By Passport titles viewed in FY t")
+conv_plot(axes[1], "genre_band", "By number of genres viewed in FY t")
+gp = passport.groupby("genre")["titles_viewed"].sum().sort_values()
+axes[2].barh(gp.index, gp.values / 1e3, color=BLUE)
+axes[2].set(title="Titles viewed by genre, FY2021-26", xlabel="Thousands of titles")
+plt.tight_layout()
+```
 
-A year with no viewing rows can mean no account, no consent, or no viewing. Treat it as "no record", not as zero, if Passport is kept at all.
+```{python}
+# conversion by viewing, holding giving level fixed (the fair comparison)
+within = panel.groupby(["giving_band", "viewed"], observed=True)["conv_12m"].agg(["size", "mean"]).unstack()
+within.columns = [f"{v}: {'donor-years' if m == 'size' else 'conversion'}" for m, v in within.columns]
+within.style.format({c: ("{:,.0f}" if "donor-years" in c else "{:.2%}") for c in within.columns})
+```
+
+```{python}
+# among active donors only: is viewing still associated with conversion?
+print("Active donors only: 12-month conversion by Passport titles viewed")
+print(conv_table("titles_band", panel[panel["status"] == "Active"])[["donor_years", "converters", "rate"]].to_string(formatters={"rate": "{:.3%}".format}))
+
+# lapsed donors: does still watching Passport go with coming back?
+lap = panel[panel["status"] != "Active"]
+lap_tab = lap.groupby(["status", "viewed"], observed=True).agg(
+    donor_years=("retained", "size"), reactivated=("retained", "mean"), converted=("conv_12m", "sum"), conv_rate=("conv_12m", "mean"))
+lap_tab.style.format({"donor_years": "{:,}", "reactivated": "{:.1%}", "converted": "{:,}", "conv_rate": "{:.3%}"})
+```
+
+**Passport findings: keep it as a candidate input, but expect little lift.**
+
+1. **Coverage is uneven.** Half of active donor-years have viewing records, but only 13% of recently lapsed and about 1.5% of long-lapsed donor-years do.
+2. **Viewing barely persists.** Only 34–41% of each year's viewers have viewing again the next year, while about 78% of active donors give again. Viewing volume is unrelated to giving amount (ρ = 0.01).
+3. **The raw gradient is mostly a status effect.** Across all eligible donors, conversion rises with viewing, from 0.04% with no record to 0.18% at 51+ titles. But "no record" is dominated by lapsed donors, who rarely view and rarely convert. Within each giving band, viewers and non-viewers convert at similar rates (e.g., 12.3% vs. 13.1% in the \$600 band). Among active donors only, those with no record convert at 0.22%, more than any viewing level (0.05–0.19%). Viewers who watch more do convert more than light viewers, but that is a within-viewer pattern, not an advantage over non-viewers. Holding giving fixed is the fair test, and Passport adds little on it.
+4. **Lapsed viewers don't reactivate more.** Recently lapsed donors who still watch reactivate at 2.9%, against 3.0% for those with no record. Their conversion count (2 vs. 7) is too small to read.
+
+*Modeling implications:*
+- **Include Passport features:** titles, genres, share watched, and a "has viewing record" flag. Keep "no record" as its own level, not zero, because it mixes no account, no consent, and no viewing.
+- **Test incremental value:** run the model with and without Passport, as the business statement plans. Report the result honestly even if the gain is near zero.
+- **Use content carefully:** don't use program titles or genre preferences to infer sensitive interests for targeting.
+
+
 
 ## 11. The cultivation program
 
@@ -851,6 +958,7 @@ panel["rfv_score"] = (panel.groupby("fy")["years_gave_last5"].rank(pct=True)
                       + panel.groupby("fy")["amount_t"].rank(pct=True))
 rules = {
     "Random list": "tiebreak",
+    "Most recent giving year's amount": "last_year_amount",
     "RFV-style (frequency + value ranks)": "rfv_score",
     "Max single gift in FY t": "max_gift",
     "3-year total giving": "amount_3yr",
@@ -868,7 +976,8 @@ def at_k(df, score, k=K):
 rows = []
 for t, df in panel.groupby("fy"):
     for name, score in rules.items():
-        for pop, sub in [("All eligible", df), ("Never-major only", df[~df["former_major"]])]:
+        for pop, sub in [("All eligible", df), ("Never-major only", df[~df["former_major"]]),
+                         ("Active only", df[df["status"] == "Active"])]:
             rows.append({"snapshot": t, "rule": name, "population": pop, **at_k(sub, score)})
 base_k = pd.DataFrame(rows)
 summary = base_k.groupby(["population", "rule"])[["recall", "precision", "lift"]].mean().reindex(list(rules), level="rule")
@@ -887,12 +996,14 @@ plt.tight_layout()
 ```
 
 **Simple rules are already strong, and this is the bar a model must clear.**
-- Ranking eligible donors by **prior-year giving** puts about **77% of next-year converters in the top 1,000**, a lift of about 25× over the overall conversion rate. **Max single gift** (76%) and **three-year total** (74%) do about as well.
-- The **RFV-style score** (frequency + value) is weaker, at 68%. Weighting how often someone gives dilutes the value signal.
-- **Among never-major donors** the task is harder: the best rule (prior-year giving) captures about 63%, and three-year total only 50%.
-- Recall swings by roughly ±10 points from year to year. With about 50 converters a year, a model's apparent gain of a few points could be noise.
+- **All eligible donors (active + lapsed):** ranking by **3-year total**, **max single gift**, or **prior-year giving** puts **68–69% of next-year converters in the top 1,000**. Ranking by the most recent giving year's amount, which also scores lapsed donors, reaches 62%. So does the RFV-style score.
+- **Active donors only:** the same rules capture 74–75%, and RFV 68%.
+- **Never-major donors:** the task is harder. Max gift and prior-year giving capture about 53–54%, and RFV only 38%.
+- Recall swings by roughly ±10 points from year to year. With about 60 converters a year, a model's apparent gain of a few points could be noise.
 
-*Implication:* A useful model must beat about 77% recall at 1,000 overall, and about 63% for never-major donors. Each year only about 265 donors give around \$600, so they already fit in the top 1,000. The real room for improvement is **finding the converters who come from lower bands** (the \$101–250 band alone produced 61 of 269), and ordering the rest of the list well.
+*Implication:*
+- A useful model must beat about 69% recall at 1,000 for all eligible donors, and about 54% for never-major donors.
+- Each year only about 265 donors give around \$600, so they already fit in the top 1,000. The room for improvement is in **finding converters outside that group**, for example in the \$101–250 band (61 converters) and among lapsed donors (24). Simple amount rules rank both groups poorly.
 
 ## 13. Checking the business problem statement
 
@@ -943,12 +1054,13 @@ pd.DataFrame({"12-month converters": tiers, "share": tiers / tiers.sum()}).style
 | Statement says | What the data show | Recommendation |
 |---|---|---|
 | Major donors are **about 1% of donors and 19% of revenue**. | They are **0.25–0.38% of donors and 5–11% of revenue** (Section 6), even with defective copies removed. | Restate the figures from the data, or confirm the source with PBS Utah. |
-| **25% of 3–5 year converters in the top 10%.** | The top 10% is about 3,200 donors a year, three times what officers can cultivate. Even the **RFV baseline** reaches 62% (3-year) and 73% (12-month). Ranking by **prior-year giving** reaches 74% and 88%. Random reaches about 10%. | Raise the bar: the target should be to **beat the prior-year-giving baseline**. Report it at K = 1,000 (Section 12) and separately for **never-major donors**, where the same baseline reaches 58% (3-year) and 75% (12-month). |
-| Predict tiers of **\$1,200, \$2,000, \$5,000, \$10,000, \$15,000+**. | Of 269 12-month converters, **95% reach \$1,200–4,999**. Only 13 reach \$5,000+ (4, 5, and 4 in the top three tiers). | Collapse to **three tiers**: \$1,200–1,999, \$2,000–4,999, and \$5,000+. |
+| **25% of 3–5 year converters in the top 10%.** | With lapsed donors included, the top 10% is about 12,700 donors a year, more than twelve times what officers can cultivate. Even the **RFV baseline** reaches 74% (3-year) and 83% (12-month). Ranking by **prior-year giving** reaches 73% and 84%. Random reaches about 10%. | Raise the bar: the target should be to **beat the prior-year-giving baseline**. Report it at K = 1,000 (Section 12) and separately for **never-major donors**, where the same baseline reaches 61% (3-year) and 75% (12-month). |
+| Predict tiers of **\$1,200, \$2,000, \$5,000, \$10,000, \$15,000+**. | Of 293 12-month converters, **95% reach \$1,200–4,999**. Only 14 reach \$5,000+ (5, 5, and 4 in the top three tiers). | Collapse to **three tiers**: \$1,200–1,999, \$2,000–4,999, and \$5,000+. |
 | Test 12-month and **3–5 year** windows. | Five snapshot years support the 12-month window. Only three support the 3-year window, and only one (FY2021) supports the 5-year window. | Following the statement's fallback, test 12 months and 3 years, and report 5 years as a projection. |
 | Inputs include **UofU engagement and capacity scores** and **event participation**. | No engagement or capacity score tables are in the release. The UofU dollar fields are rebuilt from PBS giving, so they leak (Section 8). Campaign codes carry no usable event detail. | Drop these inputs and say so in the statement. |
-| **Passport viewing** as an input; coverage incomplete. | Coverage is incomplete, and viewing shows no association with conversion once giving is known (Section 10). | Keep as a candidate, but expect no lift. Treat "no record" as unknown, not zero. |
-| The **recent influx** may skew history; sensitivity test with and without the last year. | FY2025→26 has the highest conversion (0.24%, 80 converters) and the lowest recall at K = 1,000 for the prior-year-giving rule (65%). | Keep the planned sensitivity test, and report FY2025→26 separately. |
+| **Passport viewing** as an input; coverage incomplete. | Coverage is 50% for active donors and 1–13% for lapsed donors. The raw link to conversion disappears once giving level is held fixed (Section 10). | Include as a candidate input with a "no record" level, and test it with and without, as planned. Expect little lift. |
+| The **recent influx** may skew history; sensitivity test with and without the last year. | FY2025→26 has the highest conversion (0.065%, 88 converters), and recall at K = 1,000 drops for every simple rule from FY2024→25 to FY2025→26 (prior-year giving: 77% → 62%). | Keep the planned sensitivity test, and report FY2025→26 separately. |
+| **Non-major donors** are the eligible population (lapsed not specified). | Lapsed donors are 75% of eligible donor-years but 8% of converters (24 of 293), mostly returning former majors (Section 6). | Include lapsed donors with status and recency features. Report active and lapsed segments separately. Consider capping very old lapses. |
 | Assigning prospects to fundraisers is out of scope. | Officer contact **nearly triples** conversion after program adoption (Section 11). Past contact is therefore part of the outcome. | Exclude cultivation fields from the baseline model, and note that the list's results depend on who staff contact. |
 
 
@@ -957,19 +1069,20 @@ pd.DataFrame({"12-month converters": tiers, "share": tiers / tiers.sum()}).style
 ### Summary of findings
 1. **Data structure.** The nine tables join cleanly on constituent ID. The apparent orphan and unlinked rows are **defective copies** of real records: 36,044 payments, 113 soft credits, and 216,128 legacy rows. They were removed, along with 79 duplicate soft credits and 59 constant or blank columns.
 2. **Building giving.** Fiscal-year giving = positive personal payments + deduplicated soft credits, with org hard credits excluded (they equal the soft credits). This yields 199,772 donor-years for 71,811 donors, FY2021–26.
-3. **The target is rare.** Major donors (\$1,200+) are 0.25–0.38% of donors and 5–11% of revenue. 12-month conversion is **0.17%** (about 54 a year). Former majors are 0.6% of eligible donors but 51% of converters.
-4. **Strongest predictors.** Prior-year giving (especially the \$600 level), three-year total, former-major status, soft credits, and upgrade gifts. Sustainers renew more but convert less.
-5. **Weak or no signal.** Solicitations and Passport viewing add nothing once giving is known. Age adds a little.
-6. **Leakage.** Giving group, major-donor class, the sustainer flag, and the UofU dollar fields are rebuilt from FY2025–26 giving. Exclude them.
-7. **Cultivation works after adoption.** Contact nearly triples conversion relative to random holdouts (5.5% vs. 1.9%). Before adoption there is little effect.
-8. **Baselines.** Ranking by prior-year giving already captures about 77% of converters in the top 1,000 (63% for never-major donors), and 88% of 12-month and 74% of 3-year converters in the top 10%.
-9. **Business statement.** The data do not support the 1%/19% figures, the 25% top-10% target (already exceeded by simple rules), the five-tier scheme, or the UofU score inputs. Section 13 lists the recommended revisions.
+3. **The target is rare.** Major donors (\$1,200+) are 0.25–0.38% of donors and 5–11% of revenue. Among all eligible donors (active + lapsed), 12-month conversion is **0.046%** (293 converters, about 59 a year). Former majors are 0.3% of eligible donor-years but 50% of converters.
+4. **Lapsed donors.** They are 75% of eligible donor-years but 8% of converters. Recently lapsed converters are mostly former majors, and long-lapsed converters are rare.
+5. **Strongest predictors.** Prior-year giving (especially the \$600 level), three-year total, former-major status, soft credits, upgrade gifts, and donor status / recency. Sustainers renew more but convert less.
+6. **Weak signal.** Passport viewing looks predictive overall, but that is mostly a status effect, and it adds little once giving is known. The same holds for solicitations. Age adds a little.
+7. **Leakage.** Giving group, major-donor class, the sustainer flag, and the UofU dollar fields are rebuilt from FY2025–26 giving. Exclude them.
+8. **Cultivation works after adoption.** Contact nearly triples conversion relative to random holdouts (5.5% vs. 1.9%). Before adoption there is little effect.
+9. **Baselines.** Ranking by 3-year total, max gift, or prior-year giving captures about 69% of converters in the top 1,000 (about 54% for never-major donors), and 84% of 12-month converters in the top 10%.
+10. **Business statement.** The data do not support the 1%/19% figures, the 25% top-10% target (already exceeded by simple rules), the five-tier scheme, or the UofU score inputs. Section 13 lists the recommended revisions.
 
 ### Implications for modeling
-- **Unit and target.** Eligible donor-years (gave in FY *t*, under \$1,200). Primary target: \$1,200+ in FY *t* + 1. Secondary targets: 3- and 5-year conversion, and a coarse tier.
+- **Unit and target.** Eligible donor-years: ever gave, and under \$1,200 in FY *t*, active and lapsed. Primary target: \$1,200+ in FY *t* + 1. Secondary targets: 3- and 5-year conversion, and a coarse tier.
 - **Validation.** Rolling time-based backtests (train on earlier snapshots, test on the next), keeping spouses in the same fold. Never split randomly by row. Expect a shift in FY2026.
-- **Metrics.** Recall, precision, and lift at K = 1,000 (and smaller K), plus PR-AUC. Report separately for never-major donors. Always compare against the prior-year-giving baseline.
-- **Features.** Prior-year amount, three-year total, max gift, former major, soft-credit/DAF flags, upgrade flag, recurring flag, years given in the last five, tenure including legacy history, and age at *t*. Exclude snapshot and cultivation fields from the baseline model.
+- **Metrics.** Recall, precision, and lift at K = 1,000 (and smaller K), plus PR-AUC. Report overall, for **never-major donors**, and for **active vs. lapsed** segments. Always compare against the prior-year-giving and 3-year-total baselines.
+- **Features.** Prior-year amount, three-year total, max gift, former major, soft-credit/DAF flags, upgrade flag, recurring flag, years given in the last five, tenure including legacy history, status, years since last gift, last giving year's amount, age at *t*, and **Passport features with a "no record" level**. Exclude snapshot and cultivation fields from the baseline model.
 - **Next step.** Because contact has a measurable effect, consider an uplift analysis so officers select the donors whose conversion *changes* most with contact.
 
 ### Open questions for the sponsor
@@ -977,4 +1090,5 @@ pd.DataFrame({"12-month converters": tiers, "share": tiers / tiers.sum()}).style
 - What does `tender_type = "Legacy"` mean?
 - What exactly does "contacted" mean in portfolios that had not yet adopted the program?
 - Should success count first-time major donors only, or also returning former majors?
+- How far back should lapsed donors be considered? Should 6+ year lapses be scored at all?
 - Where do the "1% of donors, 19% of revenue" figures come from, and do they use a different definition of major donor?

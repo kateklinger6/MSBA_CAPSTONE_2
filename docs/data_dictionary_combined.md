@@ -233,8 +233,11 @@ Built in `notebooks/EDA_PBS_Utah_Donors.qmd`, using only information available b
 |---|---|---|
 | `fy` | All transaction tables | Fiscal year: year of date, +1 if month ≥ July (FY2026 = Jul 2025–Jun 2026) |
 | `giving (amount)` | Payments + soft credits | Donor fiscal-year giving: positive personal payments + deduplicated positive soft credits; org payments and defective copies excluded |
-| `eligible` | Donor-year panel | Gave in FY t and gave under \$1,200 in FY t |
-| `conv_12m` | Target | Giving ≥ \$1,200 in FY t+1 (0.17% of eligible donor-years) |
+| `eligible` | Donor-year panel | Ever gave (Unite or legacy) through FY t and gave under \$1,200 in FY t; includes lapsed donors |
+| `status` | Feature / segment | Active (gave in FY t), Lapsed 1–2 yrs, Lapsed 3–5 yrs, Lapsed 6+ yrs |
+| `years_since_last_gift` | Feature | FY t minus the last fiscal year with any gift (0 = active) |
+| `last_year_amount` | Feature | Giving in the most recent fiscal year with a gift |
+| `conv_12m` | Target | Giving ≥ \$1,200 in FY t+1 (0.046% of eligible donor-years; 0.17% for active donors) |
 | `conv_3yr / conv_5yr` | Target | ≥ \$1,200 in any of FY t+1..t+3 / t+1..t+5 (snapshots FY2021–23 / FY2021 only) |
 | `amount_t, amount_3yr` | Feature | Giving in FY t; total giving FY t-2..t (legacy household credit before FY2021) |
 | `max_gift` | Feature | Largest single payment or soft credit in FY t |
@@ -246,4 +249,4 @@ Built in `notebooks/EDA_PBS_Utah_Donors.qmd`, using only information available b
 | `soft_credit_t / soft_credit_ever` | Feature | Any soft credit in FY t / up to FY t |
 | `age_at_t` | Feature | Age − (2026 − t) |
 | `n_solicited, n_responded` | Candidate feature | Solicitations and responses in FY t |
-| `titles` | Candidate feature | Passport titles viewed in FY t (blank = no record, not zero) |
+| `titles`, `genres`, `pct_watched`, `viewed` | Candidate feature | Passport titles, genres, and share watched in FY t; `viewed` flags any record (blank = no record, not zero) |

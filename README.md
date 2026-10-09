@@ -33,10 +33,12 @@ Congress eliminated federal funding for public broadcasting in 2025, leaving PBS
 ## What the EDA found about the problem statement
 Section 13 of the report tests the statement against the data:
 - **Major-donor share:** major donors are **0.25–0.38% of donors and 5–11% of revenue**, not the 1% and 19% in the statement.
-- **The 25% target:** recall in the top 10% is already exceeded by simple rules. Ranking by prior-year giving reaches 88% (12-month) and 74% (3-year), and the RFV baseline reaches 73% and 62%. The target should be to beat the prior-year-giving baseline, measured at a list of about 1,000 and for never-major donors.
+- **Eligible population:** active **and lapsed** donors (ever gave, under \$1,200 in the snapshot year). Lapsed donors are 75% of eligible donor-years but 8% of converters (24 of 293), mostly returning former majors, so results are reported by segment.
+- **The 25% target:** recall in the top 10% is already exceeded by simple rules. Ranking by prior-year giving reaches 84% (12-month) and 73% (3-year), and the RFV baseline reaches 83% and 74%. The target should be to beat the prior-year-giving baseline, measured at a list of about 1,000 and for never-major donors.
 - **Tiers:** 95% of converters reach \$1,200–4,999, so three tiers (\$1,200 / \$2,000 / \$5,000+) are more realistic than five.
 - **Time windows:** the data support testing 12-month and 3-year windows. The 5-year window can only be a projection.
 - **Inputs:** University of Utah engagement and capacity scores are not in the data, and the UofU dollar fields leak future PBS giving.
+- **Passport:** kept as a candidate input with a "no record" level. Its raw link to conversion is mostly a status effect and fades once giving is held fixed, so it should be tested with and without in the model.
 
 ## Contents
 - `notebooks/EDA_PBS_Utah_Donors.qmd`: exploratory data analysis (Quarto source, Python)
