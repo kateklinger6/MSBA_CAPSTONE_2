@@ -22,16 +22,53 @@ jupyter: python3
 
 ## 1. Introduction
 
-### Business problem
-Congress ended federal funding for public broadcasting in 2025, leaving PBS Utah with a recurring shortfall. **Major donors**, people who give **\$1,200 or more in a fiscal year**, are the most valuable donors, but PBS Utah has no reliable, data-driven way to tell which of its tens of thousands of smaller donors are most likely to become major donors. Gift officers can only cultivate about 1,000 donors a year (eight portfolios of 125), so they need a **ranked prospect list** that puts the likeliest future major donors at the top.
+This EDA supports the team's business problem statement, summarized below. Section 13 checks the statement's assumptions against the data.
 
-### Analytic problem
+### Business problem
+Congress eliminated federal funding for public broadcasting in 2025, leaving PBS Utah with an estimated recurring shortfall of about \$2 million per year. Major donors, who give **\$1,200 or more annually**, are described as about 1% of the donor file but about 19% of donor revenue. PBS Utah has no reliable, data-driven way to identify which current non-major donors are most likely to become major donors, or at what giving level.
+
+### Benefit of a solution
+A ranked prospect list lets development staff spend limited stewardship time on the donors with the strongest evidence of major-giving potential, instead of manually searching the full donor file. The project will also show which giving, engagement, and viewing behaviors are most associated with moving into major giving.
+
+### Success metrics
+Success will be judged by **backtesting on held-out historical periods**, not by revenue.
+
+- **Primary target:** at least **25% of non-major donors who later reach \$1,200+ within 3–5 years** should appear in the **top 10%** of the model's ranked list. A 12-month result is reported alongside it.
+- **Comparisons:** random selection and a recency-frequency-value (RFV) baseline.
+- **Giving tiers:** predicted tiers are checked against the tier each donor actually reached, exactly or within one tier.
+- **Other measures:** precision, lift, and calibration are reported alongside recall, including at a list size staff can realistically work.
+
+The 25% target is to be confirmed once EDA sets the baseline conversion rate.
+
+### Analytics approach
+- **Model:** analysis at the individual donor level. A classification model built for a rare outcome will estimate each current non-major donor's probability of reaching \$1,200+ in annual giving:
+  - within **12 months** (immediate priority),
+  - within **3–5 years** (long-term nurture),
+  - plus the most likely giving tier (\$1,200, \$2,000, \$5,000, \$10,000, or \$15,000+).
+- **Validation:** several models will be compared with time-based validation that uses only information available at each prediction date.
+- **Inputs:** giving and sustaining-gift history, campaign and event participation, University of Utah engagement and capacity scores, and consented Passport viewing data.
+- **Risks:** data leakage, incomplete Passport coverage, and the recent donation influx skewing recent history. These are handled with availability checks and a sensitivity test with and without the last year.
+- **Fallback:** if the data span too few years to test the 3–5 year window, the 12-month window becomes the tested outcome and 3–5 years is reported as a projection.
+
+### Scope
+- **Delivered:**
+  - a documented major-donor definition and eligible population
+  - a cleaned donor-level dataset
+  - a validated model benchmarked against the baseline
+  - a working-queue dashboard ranking donors by probability, giving tier, and key drivers, split into *Immediate priority* and *Long-term nurture* segments, with a separate backtest view for model performance
+  - reproducible code, plus documentation of findings and limitations
+- **Out of scope:** contacting donors, assigning prospects to fundraisers, guaranteeing gifts, measuring actual revenue, and automated decisions without staff review.
+- **Possible later additions:** ask timing, a dashboard tracking actual conversions and revenue after rollout, CRM integration, gifts above \$15K, and a household-level roll-up.
+
+**Team:** Erin Bednarik, Benjamin Hogan, Samantha Huang, and Kate Klinger, with support from Jason Hoggan and Natalie Benoy at PBS Utah. **Milestones:** initial results November 11, 2026; final project December 2, 2026.
+
+### How this EDA frames the analytic problem
 The unit of analysis is the **donor-year**. At the end of each fiscal year *t*, every donor who gave in FY *t* but gave **less than \$1,200** is eligible. Using only information available by the end of FY *t*, predict:
 
-- **12-month conversion (primary target):** giving of \$1,200 or more in FY *t + 1*
+- **12-month conversion:** giving of \$1,200 or more in FY *t + 1*
 - **Longer-term conversion:** \$1,200 or more in any of FY *t + 1* to *t + 3*, or *t + 1* to *t + 5*
 
-Major gifts are rare, so this is a rare-event classification problem. A model will be judged on how many future converters it places in the top ~1,000 of the list (recall, precision, and lift at K), compared against simple rules that staff could apply without a model.
+Because gift officers can cultivate about 1,000 donors a year (eight portfolios of 125), results are reported both at the top 10% of the list (the statement's target) and at K = 1,000 (the realistic working list).
 
 ### Questions guiding this EDA
 1. How are the tables related, and do the keys join cleanly?
@@ -42,6 +79,7 @@ Major gifts are rare, so this is a rare-event classification problem. A model wi
 6. Do solicitations or Passport viewing add information beyond giving history?
 7. What does the randomized cultivation holdout reveal about the effect of officer contact?
 8. How well do simple ranking rules already find converters, i.e., what must a model beat?
+9. Do the problem statement's assumptions (major-donor share, the 25% recall target, tiers, the 3–5 year window, available inputs) hold in the data?
 
 ## 2. Setup and data loading
 
@@ -856,7 +894,65 @@ plt.tight_layout()
 
 *Implication:* A useful model must beat about 77% recall at 1,000 overall, and about 63% for never-major donors. Each year only about 265 donors give around \$600, so they already fit in the top 1,000. The real room for improvement is **finding the converters who come from lower bands** (the \$101–250 band alone produced 61 of 269), and ordering the rest of the list well.
 
-## 13. Results
+## 13. Checking the business problem statement
+
+This section tests the statement's assumptions and success target against the data.
+
+### The 25% recall target at the top 10%
+
+The statement's primary target is that at least 25% of non-major donors who later reach \$1,200+ appear in the **top 10%** of the ranked list. The table below applies that test to the simple baselines from Section 12, for each outcome window, averaged over the available snapshot years.
+
+```{python}
+def recall_top_share(df, score, target, share=0.10):
+    df = df.dropna(subset=[target])
+    k = int(np.ceil(len(df) * share))
+    top = df.sort_values([score, "tiebreak"], ascending=False).head(k)
+    return top[target].sum() / df[target].sum()
+
+
+windows = {"12 months": ("conv_12m", range(2021, 2026)), "within 3 years": ("conv_3yr", range(2021, 2024)),
+           "within 5 years": ("conv_5yr", [2021])}
+rows = []
+for wname, (target, years) in windows.items():
+    for t in years:
+        df = panel[panel["fy"] == t]
+        for name in ["Random list", "RFV-style (frequency + value ranks)", "Prior-year (FY t) giving"]:
+            for pop, sub in [("All eligible", df), ("Never-major only", df[~df["former_major"]])]:
+                rows.append({"window": wname, "snapshot": t, "rule": name, "population": pop,
+                             "recall in top 10%": recall_top_share(sub, rules[name], target)})
+top10 = pd.DataFrame(rows)
+top10_tab = top10.pivot_table(index=["population", "rule"], columns="window", values="recall in top 10%", aggfunc="mean")[list(windows)]
+top10_tab = top10_tab.reindex(["Random list", "RFV-style (frequency + value ranks)", "Prior-year (FY t) giving"], level="rule")
+print(f"Top 10% of the list is about {int(panel.groupby('fy').size().mean() * 0.10):,} donors per snapshot year; "
+      f"snapshots available: 12 months = 5, 3 years = 3, 5 years = 1.")
+top10_tab.style.format("{:.0%}")
+```
+
+### Giving tiers reached by converters
+
+```{python}
+tier_bins = [MAJOR, 2000, 5000, 10000, 15000, np.inf]
+tier_labels = ["$1,200-1,999", "$2,000-4,999", "$5,000-9,999", "$10,000-14,999", "$15,000+"]
+conv = panel[panel["conv_12m"]]
+tiers = pd.cut(conv["amount_next"], tier_bins, labels=tier_labels, right=False).value_counts().reindex(tier_labels)
+pd.DataFrame({"12-month converters": tiers, "share": tiers / tiers.sum()}).style.format({"share": "{:.0%}"})
+```
+
+### Summary of checks
+
+| Statement says | What the data show | Recommendation |
+|---|---|---|
+| Major donors are **about 1% of donors and 19% of revenue**. | They are **0.25–0.38% of donors and 5–11% of revenue** (Section 6), even with defective copies removed. | Restate the figures from the data, or confirm the source with PBS Utah. |
+| **25% of 3–5 year converters in the top 10%.** | The top 10% is about 3,200 donors a year, three times what officers can cultivate. Even the **RFV baseline** reaches 62% (3-year) and 73% (12-month). Ranking by **prior-year giving** reaches 74% and 88%. Random reaches about 10%. | Raise the bar: the target should be to **beat the prior-year-giving baseline**. Report it at K = 1,000 (Section 12) and separately for **never-major donors**, where the same baseline reaches 58% (3-year) and 75% (12-month). |
+| Predict tiers of **\$1,200, \$2,000, \$5,000, \$10,000, \$15,000+**. | Of 269 12-month converters, **95% reach \$1,200–4,999**. Only 13 reach \$5,000+ (4, 5, and 4 in the top three tiers). | Collapse to **three tiers**: \$1,200–1,999, \$2,000–4,999, and \$5,000+. |
+| Test 12-month and **3–5 year** windows. | Five snapshot years support the 12-month window. Only three support the 3-year window, and only one (FY2021) supports the 5-year window. | Following the statement's fallback, test 12 months and 3 years, and report 5 years as a projection. |
+| Inputs include **UofU engagement and capacity scores** and **event participation**. | No engagement or capacity score tables are in the release. The UofU dollar fields are rebuilt from PBS giving, so they leak (Section 8). Campaign codes carry no usable event detail. | Drop these inputs and say so in the statement. |
+| **Passport viewing** as an input; coverage incomplete. | Coverage is incomplete, and viewing shows no association with conversion once giving is known (Section 10). | Keep as a candidate, but expect no lift. Treat "no record" as unknown, not zero. |
+| The **recent influx** may skew history; sensitivity test with and without the last year. | FY2025→26 has the highest conversion (0.24%, 80 converters) and the lowest recall at K = 1,000 for the prior-year-giving rule (65%). | Keep the planned sensitivity test, and report FY2025→26 separately. |
+| Assigning prospects to fundraisers is out of scope. | Officer contact **nearly triples** conversion after program adoption (Section 11). Past contact is therefore part of the outcome. | Exclude cultivation fields from the baseline model, and note that the list's results depend on who staff contact. |
+
+
+## 14. Results
 
 ### Summary of findings
 1. **Data structure.** The nine tables join cleanly on constituent ID. The apparent orphan and unlinked rows are **defective copies** of real records: 36,044 payments, 113 soft credits, and 216,128 legacy rows. They were removed, along with 79 duplicate soft credits and 59 constant or blank columns.
@@ -866,7 +962,8 @@ plt.tight_layout()
 5. **Weak or no signal.** Solicitations and Passport viewing add nothing once giving is known. Age adds a little.
 6. **Leakage.** Giving group, major-donor class, the sustainer flag, and the UofU dollar fields are rebuilt from FY2025–26 giving. Exclude them.
 7. **Cultivation works after adoption.** Contact nearly triples conversion relative to random holdouts (5.5% vs. 1.9%). Before adoption there is little effect.
-8. **Baselines.** Ranking by prior-year giving already captures about 77% of converters in the top 1,000 (63% for never-major donors).
+8. **Baselines.** Ranking by prior-year giving already captures about 77% of converters in the top 1,000 (63% for never-major donors), and 88% of 12-month and 74% of 3-year converters in the top 10%.
+9. **Business statement.** The data do not support the 1%/19% figures, the 25% top-10% target (already exceeded by simple rules), the five-tier scheme, or the UofU score inputs. Section 13 lists the recommended revisions.
 
 ### Implications for modeling
 - **Unit and target.** Eligible donor-years (gave in FY *t*, under \$1,200). Primary target: \$1,200+ in FY *t* + 1. Secondary targets: 3- and 5-year conversion, and a coarse tier.
@@ -880,3 +977,4 @@ plt.tight_layout()
 - What does `tender_type = "Legacy"` mean?
 - What exactly does "contacted" mean in portfolios that had not yet adopted the program?
 - Should success count first-time major donors only, or also returning former majors?
+- Where do the "1% of donors, 19% of revenue" figures come from, and do they use a different definition of major donor?
