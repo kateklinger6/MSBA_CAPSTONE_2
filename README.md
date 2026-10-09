@@ -41,6 +41,7 @@ Section 13 of the report tests the statement against the data:
 ## Contents
 - `notebooks/EDA_PBS_Utah_Donors.qmd`: exploratory data analysis (Quarto source, Python)
 - `notebooks/EDA_PBS_Utah_Donors.html`: rendered, self-contained report with all outputs
+- `docs/data_dictionary_combined.md`: every variable in all nine tables, with definitions, profile, and EDA status (use / drop / leaks); CSV copy alongside
 
 ## Data
 The course data (synthetic) lives at https://github.com/jefftwebb/donor_prediction_capstone_project and is not committed here. Large tables use Git LFS:

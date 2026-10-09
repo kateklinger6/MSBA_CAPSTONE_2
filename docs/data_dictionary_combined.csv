@@ -1,0 +1,130 @@
+table,variable,dtype,missing,n_unique,example,values,description,eda_status
+constituents_w_memberships,Constituent ID,str,0.0,196167,S00000001,,Unique person/org ID; joins to every other table. Prefixes: SYN-ORG for the 2 organizations,Key / link
+constituents_w_memberships,Spouse Constituent ID,str,0.9115,17360,S00043054,,Constituent ID of spouse; blank = no spouse on file (91%),Use with care: household grouping for validation splits
+constituents_w_memberships,Address City,str,0.2625,1,Synthetic City,Synthetic City,Placeholder 'Synthetic City' or blank,Drop
+constituents_w_memberships,Address ZIP,float64,0.0,16891,97211.0,,ZIP code (synthetic),Use with care: geography / fairness audit
+constituents_w_memberships,Address State,str,0.0,43,OR,,State; 82% UT,Use with care: geography / fairness audit
+constituents_w_memberships,Age,float64,0.0,71,71.0,,Age as of FY2026 (snapshot),Use after rolling back: Age − (2026 − t)
+constituents_w_memberships,Annual Giving Group,str,0.0,5,ND,CD | LD | ND | PD | SL,"Undocumented code; maps exactly onto FY2026 giving (ND = none … CD = $1,200+)",Leaks — exclude
+constituents_w_memberships,Constituent Type,str,0.0,13,Friends,,Identical to Primary Constituent Type in every row,Drop (duplicate)
+constituents_w_memberships,UofU Degree Count,float64,0.0,1,0.0,0.0,Always 0,Drop
+constituents_w_memberships,UofU Degree Info,float64,1.0,0,,,Always blank,Drop
+constituents_w_memberships,Latest UofU Degree Year,float64,1.0,0,,,Always blank,Drop
+constituents_w_memberships,UofU Employment Status,float64,1.0,0,,,Always blank,Drop
+constituents_w_memberships,Gender,str,0.0,3,Female,Female | Male | Unknown,Female / Male / Unknown; 'Unknown' converts at a third the rate,Use with care: audit; 'Unknown' reflects record completeness
+constituents_w_memberships,Has UofU Legacy Gift,object,0.0,1,False,False,Always False,Drop
+constituents_w_memberships,Legacy Circle Member PBS Utah,object,0.0,1,False,False,Always False,Drop
+constituents_w_memberships,Lifetime UofU Fundraising,float64,0.0,539,3500.0,,Documented as UofU giving; actually tracks PBS giving through FY2026,Leaks — exclude
+constituents_w_memberships,Major Donor Class PBS Utah,str,0.9972,3,Former,Broadcaster | Director | Former,Broadcaster/Director only for FY2026 major donors; 99.7% blank,Leaks — exclude
+constituents_w_memberships,Marital Status,str,0.9115,1,Married,Married,Only 'Married' or blank (blank ≠ single),Use with care
+constituents_w_memberships,Previous FY UofU Cash,float64,0.0,6,0.0,0.0 | 125.0 | 1500.0 | 3500.0 | 425.0 | 900.0,Positive exactly when the person gave to PBS in FY2025,Leaks — exclude
+constituents_w_memberships,Primary Constituent Type,str,0.0,13,Friends,,"Friends, Donors, Alumni, Faculty, … , Organization",Use with care: use to exclude organizations
+constituents_w_memberships,Prospect Committed Giving Amount UofU,float64,0.0,46,0.0,,Mirrors FY2026 recurring PBS giving,Leaks — exclude
+constituents_w_memberships,Sustainer PBS Utah,object,0.0,2,False,False | True,Currently a monthly sustainer (FY2026 snapshot),Leaks — exclude; rebuild from payments each year
+unite_payments,donor_id,str,0.0,71643,S00000002,,Payer; joins to Constituent ID. SYN-ORPHAN rows are defective copies; SYN-ORG-* are org hard credits,Key / link
+unite_payments,designation_detail_id,str,0.0,30312,Designation 14194,,"Fund designation; 2 values cover ~880K rows, not a usable join key",Drop
+unite_payments,credit_date,str,0.0,2191,2020-07-02,,Payment date → fiscal year (July–June),Use
+unite_payments,tender_type,str,0.0,8,EFT,Cash | Check | Credit Card | EFT | Legacy | Payroll Deduction | Third Party | Wire,Payment method; 'Legacy' on 43% of rows is undocumented,Use with care
+unite_payments,payment_amount,int64,0.0,963,8,,Payment amount ($); sum positives by donor-year,Use
+unite_payments,pledge_gift_status,str,0.0,1,Paid,Paid,Always 'Paid',Drop
+unite_payments,pledge_gift_type,str,0.0,2,Outright,Outright | Recurring,Recurring vs. Outright,Use: recurring flag per year
+unite_payments,opportunity_id,str,0.0,1686654,SYN-OPP-000000001,,One per real payment; can't group recurring schedules,Drop
+unite_payments,payment_frequency,str,0.0,2,Annual,Annual | Monthly,Monthly (= Recurring) / Annual (= Outright),Drop (duplicate of pledge_gift_type)
+unite_payments,gift_type,str,0.0,6,Renew,Additional | Downgrade | New | Rejoin | Renew | Upgrade,New / Renew / Rejoin / Upgrade / Additional / Downgrade,"Use: e.g., upgrade-gift flag (9× lift)"
+unite_payments,campaign_name,str,0.0,11524,Synthetic Campaign 000680,,Campaign name for marketing_code,Drop (redundant)
+unite_payments,payment_id,str,0.0,1722698,SYN-PAY-000000001,,Unique row ID; SYN-DEF-* prefix marks defective copies,Key / link; drop SYN-DEF-* rows
+unite_payments,marketing_code,str,0.0,11525,SYN-CODE-000680,,Campaign/source code; joins to campaign_codes,Key / link
+soft_credits,Credit ID,str,0.0,4066,SYN-SC-000000029,,Credit ID; 79 exact duplicates; SYN-DEF-* prefix marks defective copies,"Key / link; dedupe, drop SYN-DEF-*"
+soft_credits,Designation Detail ID,str,0.0,1256,Designation 1,,Designation of the matching org payment,Drop
+soft_credits,Soft Credit Constituent ID,str,0.0,3028,S00000023,,Person credited; joins to Constituent ID,Key / link
+soft_credits,Hard Credit Org ID,str,0.0,2,SYN-ORG-SOFT,SYN-ORG-DAF | SYN-ORG-SOFT,SYN-ORG-DAF or SYN-ORG-SOFT,Use with care
+soft_credits,Hard Credit Org Type,str,0.0,2,Other Sponsor,DAF Sponsor | Other Sponsor,DAF Sponsor / Other Sponsor,Use: soft-credit/DAF flag (20× lift)
+soft_credits,Credit Gift Type,str,0.0,1,Payment,Payment,Always 'Payment',Drop
+soft_credits,Credit Amount,int64,0.0,777,420,,Credited amount ($); counts as the person's giving,Use
+soft_credits,Credit Date,str,0.0,1756,2020-08-11,,Credit date → fiscal year,Use
+soft_credits,Credit Type,str,0.0,1,Soft,Soft,Always 'Soft',Drop
+team_approach_legacy_payments,ta_account_id,str,0.0,588843,SYN-HH-00000001-1984,,Household account ID (household × FY); SYN-UNMATCHED-* rows are defective copies,Key / link; drop SYN-UNMATCHED-*
+team_approach_legacy_payments,gift_kind,str,0.0,2,One-Time,One-Time | Sustaining,Sustaining / One-Time,Use: history features
+team_approach_legacy_payments,gift_type,str,0.0,6,New,Additional | New | Other | Rejoin | Renew | Upgrade,Renew / New / Rejoin / Additional / Upgrade / Other,Use: history features
+team_approach_legacy_payments,gift_date,str,0.0,8121,1984-01-20,,Gift date (FY1984–FY2020),"Use: tenure, past-major flag"
+team_approach_legacy_payments,activity_type,str,0.0,1,M,M,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,campaign,str,0.0,1,Q,Q,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,initiative,int64,0.0,1,0,0,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,effort,int64,0.0,1,0,0,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,source_code,str,0.0,986729,SYN-00000001,,Unique code per row; no link to campaign_codes,Drop
+team_approach_legacy_payments,source_description,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,payment_amount,int64,0.0,1595,1200,,"Household gift amount ($); history only, never revenue",Use: history only
+team_approach_legacy_payments,payment_method,str,0.0,1,Synthetic,Synthetic,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,city,str,0.0,1,Synthetic City,Synthetic City,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,state,str,0.0,43,OR,,State,Drop (use constituent table)
+team_approach_legacy_payments,zip,int64,0.0,341,97200,,3-digit-rounded ZIP,Drop (use constituent table)
+team_approach_legacy_payments,county,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,program,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,technique_trans,str,0.0,1,Synthetic,Synthetic,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,pledge_time,str,0.0,8121,1984-01-20,,Same as gift_date,Drop (duplicate)
+team_approach_legacy_payments,premium_1_code,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_1_name,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_2_code,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_2_name,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_3_code,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_3_name,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_4_code,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_4_name,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_5_code,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_5_name,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_6_code,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,premium_6_name,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,program_source,str,0.0,1,SYN,SYN,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,source_category,str,0.0,1,Synthetic,Synthetic,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,communication_method,str,0.0,1,Synthetic,Synthetic,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,communication_type,str,0.0,1,Synthetic,Synthetic,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,activity,str,0.0,1,A,A,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,segment,int64,0.0,1,0,0,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,constituent_id_1,str,0.1797,108553,S00000001,,First linked constituent,Key / link
+team_approach_legacy_payments,constituent_id_2,str,0.9922,2942,S00010441,,Second linked constituent (0.8% of rows),Key / link
+team_approach_legacy_payments,constituent_id_3,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,constituent_id_4,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,constituent_id_5,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,constituent_id_6,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+team_approach_legacy_payments,constituent_id_7,float64,1.0,0,,,"Placeholder ('Synthetic', 'SYN', 0) or always blank",Drop
+campaign_codes,Marketing Code,str,0.0,29249,SYN-CODE-000001,,Unique code; joins to payments and campaign_members,Key / link
+campaign_codes,Source Category,str,0.0,1,Synthetic,Synthetic,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Campaign Name,str,0.0,29249,Synthetic Campaign 000001,,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Campaign ID,str,0.0,29249,SYN-CODE-000001,,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Activity,str,0.0,1,A,A,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Activity Type,str,0.0,1,M,M,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Campaign Type,str,0.0,1,Q,Q,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Initiative Year,int64,0.0,1,0,0,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Initiative Month,int64,0.0,1,0,0,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Effort,int64,0.0,1,0,0,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Segment,int64,0.0,1,0,0,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Communication Method,str,0.0,8,Digital,Digital | Email | In-Person | Legacy | Mail | Miscellaneous | Phone | Third Party,Legacy / Miscellaneous / Digital / Mail / Email / Phone / In-Person / Third Party,Use with care: only varying field
+campaign_codes,Communication Type,str,0.0,1,Synthetic,Synthetic,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Active,bool,0.0,1,True,True,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Campaign Description,float64,1.0,0,,,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Gift Type,str,0.0,1,Synthetic,Synthetic,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_codes,Solicitation,bool,0.0,1,True,True,"Placeholder, duplicate of Marketing Code, or constant in this release",Drop
+campaign_members,constituent_id,str,0.0,181680,S00000002,,Solicited person; joins to Constituent ID,Key / link
+campaign_members,marketing_code,str,0.0,28385,SYN-CODE-028679,,Solicitation code; joins to campaign_codes,Key / link
+campaign_members,campaign_name,str,0.0,28385,Synthetic Campaign 028679,,Campaign name,Drop (redundant)
+campaign_members,responded,bool,0.0,2,False,False | True,Paid on the same code in the same FY,Use with care: no value once giving is known
+campaign_members,response_type,str,0.9861,1,Payment,Payment,"'Payment' if responded, else blank",Drop (redundant)
+campaign_members,indirect_response,bool,0.0,1,False,False,Always False,Drop
+campaign_members,responded_date,str,0.9861,2191,2021-03-26,,Earliest responding payment date,Drop (use payment dates)
+campaign_members,campaign_start_date,str,0.0,6,2020-07-01,2020-07-01 | 2021-07-01 | 2022-07-01 | 2023-07-01 | 2024-07-01 | 2025-07-01,"First day of the solicitation's FY (a year marker, not a contact date)",Use: → fiscal year
+passport_viewing,constituent_id,str,0.0,70515,S00000005,,Viewer; joins to Constituent ID,Key / link
+passport_viewing,fiscal_year,int64,0.0,6,2021,2021 | 2022 | 2023 | 2024 | 2025 | 2026,"FY of viewing; no row = no account, no consent, or no viewing",Key / link
+passport_viewing,genre,str,0.0,10,Arts and Music,,10 genres (uncommon ones grouped as Other),Use with care
+passport_viewing,titles_viewed,int64,0.0,91,2,,Distinct titles viewed in genre that year,Use with care: no signal once giving is known
+passport_viewing,mean_percent_watched,float64,0.0,284470,1.0,,Average share of each title watched (0–1),Use with care
+cultivation,synthetic_id,str,0.0,2398,S00104067,,Selected donor; joins to Constituent ID,Key / link
+cultivation,fiscal_year,int64,0.0,4,2022,2022 | 2023 | 2024 | 2025,FY of selection (FY2022–25),Key / link
+cultivation,portfolio_id,str,0.0,8,P01,P01 | P02 | P03 | P04 | P05 | P06 | P07 | P08,Officer portfolio; joins to officer_portfolios,Key / link
+cultivation,selected,bool,0.0,1,True,True,Always True (table only lists selected donors),Drop
+cultivation,contacted,bool,0.0,2,True,False | True,Assigned for officer contact,Use with care: treatment — exclude from baseline model
+cultivation,holdout,bool,0.0,2,False,False | True,Randomly withheld from contact (= not contacted),Use with care: treatment-effect analysis only
+cultivation,program_adopted,bool,0.0,2,False,False | True,Portfolio had adopted the cultivation program that year,Use with care: treatment-effect analysis only
+officer_portfolios,portfolio_id,str,0.0,8,P01,P01 | P02 | P03 | P04 | P05 | P06 | P07 | P08,Portfolio ID,Key / link
+officer_portfolios,officer_id,str,0.0,8,OFFICER-01,OFFICER-01 | OFFICER-02 | OFFICER-03 | OFFICER-04 | OFFICER-05 | OFFICER-06 | OFFICER-07 | OFFICER-08,Officer ID (one per portfolio),Drop (redundant)
+officer_portfolios,capacity,int64,0.0,1,125,125,Donors selectable per year; always 125,Drop
+officer_portfolios,rollout_fy,float64,0.125,4,2023.0,2023.0 | 2024.0 | 2025.0 | 2026.0,FY the portfolio adopted the program; blank = never (P08),Use with care: treatment-effect analysis only
