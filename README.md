@@ -14,4 +14,4 @@ git clone https://github.com/jefftwebb/donor_prediction_capstone_project.git
 cd donor_prediction_capstone_project && git lfs pull
 ```
 
-Copy or symlink its `tables/` folder to `data/tables/` in this repo, or edit `DATA_DIR` in the notebook. The notebook needs `pandas numpy matplotlib seaborn scipy` and about 8 GB of RAM.
+Copy or symlink its `tables/` folder to `data/tables/` in this repo, or edit `DATA_DIR` in the notebook. The notebook needs `pandas numpy matplotlib seaborn scipy` and about 10 GB of RAM.
