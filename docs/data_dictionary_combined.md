@@ -227,7 +227,7 @@ One row per officer portfolio. **8 rows, 4 columns.**
 
 ## Derived variables used in the EDA
 
-Built in `notebooks/EDA_PBS_Utah_Donors.qmd`, using only information available by the end of FY *t*.
+Built in `notebooks/EDA_Individual_Kate_Klinger.qmd`, using only information available by the end of FY *t*.
 
 | Variable | Role | Definition |
 |---|---|---|

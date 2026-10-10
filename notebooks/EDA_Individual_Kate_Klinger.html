@@ -9,7 +9,7 @@
 <meta name="author" content="Kate Klinger">
 <meta name="dcterms.date" content="2026-10-09">
 
-<title>PBS Utah Major-Donor Prediction: Exploratory Data Analysis</title>
+<title>Individual EDA: PBS Utah Major-Donor Prediction</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -3154,8 +3154,8 @@ vertical-align: -.125em;
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<div class="quarto-title-block"><div><h1 class="title">PBS Utah Major-Donor Prediction: Exploratory Data Analysis</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
-<p class="subtitle lead">IS 6813 MSBA Capstone · Fall 2026</p>
+<div class="quarto-title-block"><div><h1 class="title">Individual EDA: PBS Utah Major-Donor Prediction</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
+<p class="subtitle lead">IS 6813 MSBA Capstone · Fall 2026 · Individual work</p>
 </div>
 
 
@@ -3186,7 +3186,7 @@ vertical-align: -.125em;
 
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">1. Introduction</h2>
-<p>This EDA supports the team’s business problem statement, summarized below. Section 13 checks the statement’s assumptions against the data.</p>
+<p>This is my <strong>individual</strong> exploratory data analysis. It feeds into the team’s group EDA. It supports the team’s business problem statement, summarized below. Section 13 checks the statement’s assumptions against the data.</p>
 <section id="business-problem" class="level3">
 <h3 class="anchored" data-anchor-id="business-problem">Business problem</h3>
 <p>Congress eliminated federal funding for public broadcasting in 2025, leaving PBS Utah with an estimated recurring shortfall of about $2 million per year. Major donors, who give <strong>$1,200 or more annually</strong>, are described as about 1% of the donor file but about 19% of donor revenue. PBS Utah has no reliable, data-driven way to identify which current non-major donors are most likely to become major donors, or at what giving level.</p>
@@ -3266,7 +3266,7 @@ vertical-align: -.125em;
 <h2 class="anchored" data-anchor-id="setup-and-data-loading">2. Setup and data loading</h2>
 <p>The data come from the <a href="https://github.com/jefftwebb/donor_prediction_capstone_project">course repository</a>. Several tables are stored with Git LFS, so clone the repository and run <code>git lfs pull</code> (a GitHub ZIP download gives tiny pointer files instead of data). Point <code>DATA_DIR</code> at the <code>tables/</code> folder. The CSVs are not committed to this repository.</p>
 <p>All rows are <strong>synthetic</strong>; no row is a real person or gift.</p>
-<div id="c63627bd" class="cell" data-execution_count="1">
+<div id="2f2d306a" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
@@ -3295,7 +3295,7 @@ vertical-align: -.125em;
 <span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> dates.dt.year <span class="op">+</span> (dates.dt.month <span class="op">&gt;=</span> <span class="dv">7</span>).astype(<span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="9cd97a53" class="cell" data-execution_count="2">
+<div id="48d1bbee" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>con <span class="op">=</span> pd.read_csv(DATA_DIR <span class="op">/</span> <span class="st">&quot;constituents_w_memberships.csv&quot;</span>, low_memory<span class="op">=</span><span class="va">False</span>)</span>
@@ -3322,7 +3322,7 @@ vertical-align: -.125em;
 <section id="description-of-the-data" class="level2">
 <h2 class="anchored" data-anchor-id="description-of-the-data">3. Description of the data</h2>
 <p>Nine tables are available. The inventory below gives each table’s size, grain, and whether its documented key is actually unique.</p>
-<div id="7cdc9d12" class="cell" data-execution_count="3">
+<div id="27890d7d" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>tables <span class="op">=</span> {</span>
@@ -3464,7 +3464,7 @@ vertical-align: -.125em;
  ├── campaign_members.constituent_id ── campaign_codes.&quot;Marketing Code&quot;
  ├── passport_viewing.constituent_id
  └── cultivation.synthetic_id ── officer_portfolios.portfolio_id</code></pre>
-<div id="e39bff3c" class="cell" data-execution_count="4">
+<div id="72ae8745" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ids <span class="op">=</span> <span class="bu">set</span>(con[<span class="st">&quot;Constituent ID&quot;</span>])</span>
@@ -3562,7 +3562,7 @@ vertical-align: -.125em;
 <section id="defective-copies-of-real-records" class="level3">
 <h3 class="anchored" data-anchor-id="defective-copies-of-real-records">Defective copies of real records</h3>
 <p>The unmatched <code>SYN-ORPHAN</code> payments look like gifts with no donor, but their row IDs say otherwise. Real payments have IDs starting <code>SYN-PAY-</code>; some rows have IDs such as <code>SYN-DEF-unmatched_constituent-…</code>, naming the defect. Similarly, every legacy row with no linked constituent has an account ID starting <code>SYN-UNMATCHED-</code>. The check below tests whether each defect row is a <strong>copy</strong> of a real row: does a real row match it on every column except the row ID and the one broken field?</p>
-<div id="5e2038e9" class="cell" data-execution_count="5">
+<div id="51a93aba" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>pay[<span class="st">&quot;kind&quot;</span>] <span class="op">=</span> pay[<span class="st">&quot;payment_id&quot;</span>].<span class="bu">str</span>.extract(<span class="vs">r&quot;^SYN-DEF-([a-z_]+)&quot;</span>)[<span class="dv">0</span>].fillna(<span class="st">&quot;real&quot;</span>)</span>
@@ -3604,72 +3604,72 @@ vertical-align: -.125em;
 <style type="text/css">
 </style>
 
-<table id="T_d1cbf" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_c9384" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_d1cbf_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">table</th>
-<th id="T_d1cbf_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">defect</th>
-<th id="T_d1cbf_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">broken field</th>
-<th id="T_d1cbf_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">rows</th>
-<th id="T_d1cbf_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">amount ($)</th>
-<th id="T_d1cbf_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">rows with a real twin</th>
+<th id="T_c9384_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">table</th>
+<th id="T_c9384_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">defect</th>
+<th id="T_c9384_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">broken field</th>
+<th id="T_c9384_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">rows</th>
+<th id="T_c9384_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">amount ($)</th>
+<th id="T_c9384_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">rows with a real twin</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_d1cbf_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">0</td>
-<td id="T_d1cbf_row0_col0" class="data row0 col0">pay</td>
-<td id="T_d1cbf_row0_col1" class="data row0 col1">unmatched_constituent</td>
-<td id="T_d1cbf_row0_col2" class="data row0 col2">donor_id</td>
-<td id="T_d1cbf_row0_col3" class="data row0 col3">33,733</td>
-<td id="T_d1cbf_row0_col4" class="data row0 col4">$433,233</td>
-<td id="T_d1cbf_row0_col5" class="data row0 col5">33,733</td>
+<td id="T_c9384_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">0</td>
+<td id="T_c9384_row0_col0" class="data row0 col0">pay</td>
+<td id="T_c9384_row0_col1" class="data row0 col1">unmatched_constituent</td>
+<td id="T_c9384_row0_col2" class="data row0 col2">donor_id</td>
+<td id="T_c9384_row0_col3" class="data row0 col3">33,733</td>
+<td id="T_c9384_row0_col4" class="data row0 col4">$433,233</td>
+<td id="T_c9384_row0_col5" class="data row0 col5">33,733</td>
 </tr>
 <tr class="even">
-<td id="T_d1cbf_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">1</td>
-<td id="T_d1cbf_row1_col0" class="data row1 col0">soft</td>
-<td id="T_d1cbf_row1_col1" class="data row1 col1">unmatched_constituent</td>
-<td id="T_d1cbf_row1_col2" class="data row1 col2">Soft Credit Constituent ID</td>
-<td id="T_d1cbf_row1_col3" class="data row1 col3">79</td>
-<td id="T_d1cbf_row1_col4" class="data row1 col4">$30,768</td>
-<td id="T_d1cbf_row1_col5" class="data row1 col5">79</td>
+<td id="T_c9384_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">1</td>
+<td id="T_c9384_row1_col0" class="data row1 col0">soft</td>
+<td id="T_c9384_row1_col1" class="data row1 col1">unmatched_constituent</td>
+<td id="T_c9384_row1_col2" class="data row1 col2">Soft Credit Constituent ID</td>
+<td id="T_c9384_row1_col3" class="data row1 col3">79</td>
+<td id="T_c9384_row1_col4" class="data row1 col4">$30,768</td>
+<td id="T_c9384_row1_col5" class="data row1 col5">79</td>
 </tr>
 <tr class="odd">
-<td id="T_d1cbf_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2</td>
-<td id="T_d1cbf_row2_col0" class="data row2 col0">pay</td>
-<td id="T_d1cbf_row2_col1" class="data row2 col1">unmatched_campaign</td>
-<td id="T_d1cbf_row2_col2" class="data row2 col2">marketing_code</td>
-<td id="T_d1cbf_row2_col3" class="data row2 col3">1,225</td>
-<td id="T_d1cbf_row2_col4" class="data row2 col4">$14,297</td>
-<td id="T_d1cbf_row2_col5" class="data row2 col5">1,225</td>
+<td id="T_c9384_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2</td>
+<td id="T_c9384_row2_col0" class="data row2 col0">pay</td>
+<td id="T_c9384_row2_col1" class="data row2 col1">unmatched_campaign</td>
+<td id="T_c9384_row2_col2" class="data row2 col2">marketing_code</td>
+<td id="T_c9384_row2_col3" class="data row2 col3">1,225</td>
+<td id="T_c9384_row2_col4" class="data row2 col4">$14,297</td>
+<td id="T_c9384_row2_col5" class="data row2 col5">1,225</td>
 </tr>
 <tr class="even">
-<td id="T_d1cbf_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">3</td>
-<td id="T_d1cbf_row3_col0" class="data row3 col0">pay</td>
-<td id="T_d1cbf_row3_col1" class="data row3 col1">nonpositive_amount</td>
-<td id="T_d1cbf_row3_col2" class="data row3 col2">payment_amount</td>
-<td id="T_d1cbf_row3_col3" class="data row3 col3">1,086</td>
-<td id="T_d1cbf_row3_col4" class="data row3 col4">$0</td>
-<td id="T_d1cbf_row3_col5" class="data row3 col5">1,086</td>
+<td id="T_c9384_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">3</td>
+<td id="T_c9384_row3_col0" class="data row3 col0">pay</td>
+<td id="T_c9384_row3_col1" class="data row3 col1">nonpositive_amount</td>
+<td id="T_c9384_row3_col2" class="data row3 col2">payment_amount</td>
+<td id="T_c9384_row3_col3" class="data row3 col3">1,086</td>
+<td id="T_c9384_row3_col4" class="data row3 col4">$0</td>
+<td id="T_c9384_row3_col5" class="data row3 col5">1,086</td>
 </tr>
 <tr class="odd">
-<td id="T_d1cbf_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">4</td>
-<td id="T_d1cbf_row4_col0" class="data row4 col0">soft</td>
-<td id="T_d1cbf_row4_col1" class="data row4 col1">nonpositive_amount</td>
-<td id="T_d1cbf_row4_col2" class="data row4 col2">Credit Amount</td>
-<td id="T_d1cbf_row4_col3" class="data row4 col3">34</td>
-<td id="T_d1cbf_row4_col4" class="data row4 col4">$0</td>
-<td id="T_d1cbf_row4_col5" class="data row4 col5">34</td>
+<td id="T_c9384_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">4</td>
+<td id="T_c9384_row4_col0" class="data row4 col0">soft</td>
+<td id="T_c9384_row4_col1" class="data row4 col1">nonpositive_amount</td>
+<td id="T_c9384_row4_col2" class="data row4 col2">Credit Amount</td>
+<td id="T_c9384_row4_col3" class="data row4 col3">34</td>
+<td id="T_c9384_row4_col4" class="data row4 col4">$0</td>
+<td id="T_c9384_row4_col5" class="data row4 col5">34</td>
 </tr>
 <tr class="even">
-<td id="T_d1cbf_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">5</td>
-<td id="T_d1cbf_row5_col0" class="data row5 col0">legacy</td>
-<td id="T_d1cbf_row5_col1" class="data row5 col1">SYN-UNMATCHED account</td>
-<td id="T_d1cbf_row5_col2" class="data row5 col2">constituent IDs</td>
-<td id="T_d1cbf_row5_col3" class="data row5 col3">216,128</td>
-<td id="T_d1cbf_row5_col4" class="data row5 col4">$6,299,033</td>
-<td id="T_d1cbf_row5_col5" class="data row5 col5">216,128</td>
+<td id="T_c9384_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">5</td>
+<td id="T_c9384_row5_col0" class="data row5 col0">legacy</td>
+<td id="T_c9384_row5_col1" class="data row5 col1">SYN-UNMATCHED account</td>
+<td id="T_c9384_row5_col2" class="data row5 col2">constituent IDs</td>
+<td id="T_c9384_row5_col3" class="data row5 col3">216,128</td>
+<td id="T_c9384_row5_col4" class="data row5 col4">$6,299,033</td>
+<td id="T_c9384_row5_col5" class="data row5 col5">216,128</td>
 </tr>
 </tbody>
 </table>
@@ -3680,7 +3680,7 @@ vertical-align: -.125em;
 </section>
 <section id="missing-values" class="level3">
 <h3 class="anchored" data-anchor-id="missing-values">Missing values</h3>
-<div id="8247390d" class="cell" data-execution_count="6">
+<div id="ab0c27d1" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> missing_summary(df, name):</span>
@@ -3924,7 +3924,7 @@ vertical-align: -.125em;
 <section id="constant-and-placeholder-columns" class="level3">
 <h3 class="anchored" data-anchor-id="constant-and-placeholder-columns">Constant and placeholder columns</h3>
 <p>Because the data are synthetic, many columns hold a single placeholder value (e.g., <code>&quot;Synthetic&quot;</code>). These carry no information and should be dropped before modeling.</p>
-<div id="00a95753" class="cell" data-execution_count="7">
+<div id="b9e06eaa" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>constant <span class="op">=</span> pd.DataFrame(</span>
@@ -3994,7 +3994,7 @@ vertical-align: -.125em;
 </section>
 <section id="other-quality-checks" class="level3">
 <h3 class="anchored" data-anchor-id="other-quality-checks">Other quality checks</h3>
-<div id="77ab3b3d" class="cell" data-execution_count="8">
+<div id="8c4d6ce7" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>org_ids <span class="op">=</span> con.loc[con[<span class="st">&quot;Primary Constituent Type&quot;</span>] <span class="op">==</span> <span class="st">&quot;Organization&quot;</span>, <span class="st">&quot;Constituent ID&quot;</span>].tolist()</span>
@@ -4012,39 +4012,39 @@ vertical-align: -.125em;
 <style type="text/css">
 </style>
 
-<table id="T_bc31c" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_f8643" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_bc31c_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">count</th>
+<th id="T_f8643_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">count</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_bc31c_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Exact duplicate soft-credit rows (among real credits)</td>
-<td id="T_bc31c_row0_col0" class="data row0 col0">79</td>
+<td id="T_f8643_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Exact duplicate soft-credit rows (among real credits)</td>
+<td id="T_f8643_row0_col0" class="data row0 col0">79</td>
 </tr>
 <tr class="even">
-<td id="T_bc31c_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Payments from organization records</td>
-<td id="T_bc31c_row1_col0" class="data row1 col0">3,959</td>
+<td id="T_f8643_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Payments from organization records</td>
+<td id="T_f8643_row1_col0" class="data row1 col0">3,959</td>
 </tr>
 <tr class="odd">
-<td id="T_bc31c_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Legacy rows linked to 2+ constituents</td>
-<td id="T_bc31c_row2_col0" class="data row2 col0">9,440</td>
+<td id="T_f8643_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Legacy rows linked to 2+ constituents</td>
+<td id="T_f8643_row2_col0" class="data row2 col0">9,440</td>
 </tr>
 <tr class="even">
-<td id="T_bc31c_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Payments with tender_type &#39;Legacy&#39; (undocumented value)</td>
-<td id="T_bc31c_row3_col0" class="data row3 col0">735,793</td>
+<td id="T_f8643_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Payments with tender_type &#39;Legacy&#39; (undocumented value)</td>
+<td id="T_f8643_row3_col0" class="data row3 col0">735,793</td>
 </tr>
 <tr class="odd">
-<td id="T_bc31c_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">Constituents who are organizations</td>
-<td id="T_bc31c_row4_col0" class="data row4 col0">2</td>
+<td id="T_f8643_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">Constituents who are organizations</td>
+<td id="T_f8643_row4_col0" class="data row4 col0">2</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<div id="9e7cc83b" class="cell" data-execution_count="9">
+<div id="76a83ee0" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;Organization hard-credit payments vs. deduplicated soft credits by FY ($):&quot;</span>)</span>
@@ -4163,7 +4163,7 @@ vertical-align: -.125em;
 <li>Drop organization payments (<code>SYN-ORG-*</code>); the same gifts reach people as soft credits, so counting both would double count.</li>
 <li>Keep positive amounts only.</li>
 </ol>
-<div id="60980f8f" class="cell" data-execution_count="10">
+<div id="71290184" class="cell" data-execution_count="10">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>real_pay <span class="op">=</span> pay[pay[<span class="st">&quot;kind&quot;</span>] <span class="op">==</span> <span class="st">&quot;real&quot;</span>]</span>
@@ -4266,7 +4266,7 @@ vertical-align: -.125em;
 </div>
 <section id="revenue-by-year" class="level3">
 <h3 class="anchored" data-anchor-id="revenue-by-year">Revenue by year</h3>
-<div id="390fd36a" class="cell" data-execution_count="11">
+<div id="6a80c170" class="cell" data-execution_count="11">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>rev <span class="op">=</span> pd.DataFrame({</span>
@@ -4362,7 +4362,7 @@ vertical-align: -.125em;
 <section id="legacy-history" class="level3">
 <h3 class="anchored" data-anchor-id="legacy-history">Legacy history</h3>
 <p>Legacy (Team Approach) rows are household gifts that can list several constituents. After dropping the <code>SYN-UNMATCHED</code> copies, each linked person gets the household’s gift credited to them <strong>for history features only</strong> (did this person’s household give, and how much, before FY2021). These amounts are never added to revenue.</p>
-<div id="ff92d886" class="cell" data-execution_count="12">
+<div id="35f20b41" class="cell" data-execution_count="12">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>leg_long <span class="op">=</span> leg_real.melt(id_vars<span class="op">=</span>[<span class="st">&quot;fy&quot;</span>, <span class="st">&quot;payment_amount&quot;</span>], value_vars<span class="op">=</span>id_cols, value_name<span class="op">=</span><span class="st">&quot;donor_id&quot;</span>).dropna(subset<span class="op">=</span>[<span class="st">&quot;donor_id&quot;</span>])</span>
@@ -4397,7 +4397,7 @@ dtype: int64</code></pre>
 <h2 class="anchored" data-anchor-id="the-target-major-donor-conversion">6. The target: major-donor conversion</h2>
 <section id="how-rare-is-major-giving" class="level3">
 <h3 class="anchored" data-anchor-id="how-rare-is-major-giving">How rare is major giving?</h3>
-<div id="c540edd6" class="cell" data-execution_count="13">
+<div id="1993de50" class="cell" data-execution_count="13">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>by_fy <span class="op">=</span> giving.groupby(<span class="st">&quot;fy&quot;</span>)[<span class="st">&quot;amount&quot;</span>].agg(</span>
@@ -4414,16 +4414,16 @@ dtype: int64</code></pre>
 <style type="text/css">
 </style>
 
-<table id="T_bc63e" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_3bee8" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_bc63e_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donors</th>
-<th id="T_bc63e_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">revenue</th>
-<th id="T_bc63e_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">major_donors</th>
-<th id="T_bc63e_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">major_revenue</th>
-<th id="T_bc63e_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">major share of donors</th>
-<th id="T_bc63e_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">major share of revenue</th>
+<th id="T_3bee8_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donors</th>
+<th id="T_3bee8_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">revenue</th>
+<th id="T_3bee8_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">major_donors</th>
+<th id="T_3bee8_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">major_revenue</th>
+<th id="T_3bee8_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">major share of donors</th>
+<th id="T_3bee8_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">major share of revenue</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">fy</th>
@@ -4437,64 +4437,64 @@ dtype: int64</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_bc63e_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">2021</td>
-<td id="T_bc63e_row0_col0" class="data row0 col0">30,961</td>
-<td id="T_bc63e_row0_col1" class="data row0 col1">$2,938,489</td>
-<td id="T_bc63e_row0_col2" class="data row0 col2">118</td>
-<td id="T_bc63e_row0_col3" class="data row0 col3">$314,424</td>
-<td id="T_bc63e_row0_col4" class="data row0 col4">0.38%</td>
-<td id="T_bc63e_row0_col5" class="data row0 col5">10.7%</td>
+<td id="T_3bee8_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">2021</td>
+<td id="T_3bee8_row0_col0" class="data row0 col0">30,961</td>
+<td id="T_3bee8_row0_col1" class="data row0 col1">$2,938,489</td>
+<td id="T_3bee8_row0_col2" class="data row0 col2">118</td>
+<td id="T_3bee8_row0_col3" class="data row0 col3">$314,424</td>
+<td id="T_3bee8_row0_col4" class="data row0 col4">0.38%</td>
+<td id="T_3bee8_row0_col5" class="data row0 col5">10.7%</td>
 </tr>
 <tr class="even">
-<td id="T_bc63e_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">2022</td>
-<td id="T_bc63e_row1_col0" class="data row1 col0">31,300</td>
-<td id="T_bc63e_row1_col1" class="data row1 col1">$2,928,205</td>
-<td id="T_bc63e_row1_col2" class="data row1 col2">102</td>
-<td id="T_bc63e_row1_col3" class="data row1 col3">$172,901</td>
-<td id="T_bc63e_row1_col4" class="data row1 col4">0.33%</td>
-<td id="T_bc63e_row1_col5" class="data row1 col5">5.9%</td>
+<td id="T_3bee8_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">2022</td>
+<td id="T_3bee8_row1_col0" class="data row1 col0">31,300</td>
+<td id="T_3bee8_row1_col1" class="data row1 col1">$2,928,205</td>
+<td id="T_3bee8_row1_col2" class="data row1 col2">102</td>
+<td id="T_3bee8_row1_col3" class="data row1 col3">$172,901</td>
+<td id="T_3bee8_row1_col4" class="data row1 col4">0.33%</td>
+<td id="T_3bee8_row1_col5" class="data row1 col5">5.9%</td>
 </tr>
 <tr class="odd">
-<td id="T_bc63e_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2023</td>
-<td id="T_bc63e_row2_col0" class="data row2 col0">33,322</td>
-<td id="T_bc63e_row2_col1" class="data row2 col1">$3,185,707</td>
-<td id="T_bc63e_row2_col2" class="data row2 col2">114</td>
-<td id="T_bc63e_row2_col3" class="data row2 col3">$244,129</td>
-<td id="T_bc63e_row2_col4" class="data row2 col4">0.34%</td>
-<td id="T_bc63e_row2_col5" class="data row2 col5">7.7%</td>
+<td id="T_3bee8_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2023</td>
+<td id="T_3bee8_row2_col0" class="data row2 col0">33,322</td>
+<td id="T_3bee8_row2_col1" class="data row2 col1">$3,185,707</td>
+<td id="T_3bee8_row2_col2" class="data row2 col2">114</td>
+<td id="T_3bee8_row2_col3" class="data row2 col3">$244,129</td>
+<td id="T_3bee8_row2_col4" class="data row2 col4">0.34%</td>
+<td id="T_3bee8_row2_col5" class="data row2 col5">7.7%</td>
 </tr>
 <tr class="even">
-<td id="T_bc63e_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">2024</td>
-<td id="T_bc63e_row3_col0" class="data row3 col0">32,867</td>
-<td id="T_bc63e_row3_col1" class="data row3 col1">$3,137,128</td>
-<td id="T_bc63e_row3_col2" class="data row3 col2">83</td>
-<td id="T_bc63e_row3_col3" class="data row3 col3">$162,372</td>
-<td id="T_bc63e_row3_col4" class="data row3 col4">0.25%</td>
-<td id="T_bc63e_row3_col5" class="data row3 col5">5.2%</td>
+<td id="T_3bee8_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">2024</td>
+<td id="T_3bee8_row3_col0" class="data row3 col0">32,867</td>
+<td id="T_3bee8_row3_col1" class="data row3 col1">$3,137,128</td>
+<td id="T_3bee8_row3_col2" class="data row3 col2">83</td>
+<td id="T_3bee8_row3_col3" class="data row3 col3">$162,372</td>
+<td id="T_3bee8_row3_col4" class="data row3 col4">0.25%</td>
+<td id="T_3bee8_row3_col5" class="data row3 col5">5.2%</td>
 </tr>
 <tr class="odd">
-<td id="T_bc63e_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">2025</td>
-<td id="T_bc63e_row4_col0" class="data row4 col0">32,972</td>
-<td id="T_bc63e_row4_col1" class="data row4 col1">$3,256,715</td>
-<td id="T_bc63e_row4_col2" class="data row4 col2">86</td>
-<td id="T_bc63e_row4_col3" class="data row4 col3">$231,345</td>
-<td id="T_bc63e_row4_col4" class="data row4 col4">0.26%</td>
-<td id="T_bc63e_row4_col5" class="data row4 col5">7.1%</td>
+<td id="T_3bee8_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">2025</td>
+<td id="T_3bee8_row4_col0" class="data row4 col0">32,972</td>
+<td id="T_3bee8_row4_col1" class="data row4 col1">$3,256,715</td>
+<td id="T_3bee8_row4_col2" class="data row4 col2">86</td>
+<td id="T_3bee8_row4_col3" class="data row4 col3">$231,345</td>
+<td id="T_3bee8_row4_col4" class="data row4 col4">0.26%</td>
+<td id="T_3bee8_row4_col5" class="data row4 col5">7.1%</td>
 </tr>
 <tr class="even">
-<td id="T_bc63e_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">2026</td>
-<td id="T_bc63e_row5_col0" class="data row5 col0">38,350</td>
-<td id="T_bc63e_row5_col1" class="data row5 col1">$4,185,268</td>
-<td id="T_bc63e_row5_col2" class="data row5 col2">129</td>
-<td id="T_bc63e_row5_col3" class="data row5 col3">$395,456</td>
-<td id="T_bc63e_row5_col4" class="data row5 col4">0.34%</td>
-<td id="T_bc63e_row5_col5" class="data row5 col5">9.4%</td>
+<td id="T_3bee8_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">2026</td>
+<td id="T_3bee8_row5_col0" class="data row5 col0">38,350</td>
+<td id="T_3bee8_row5_col1" class="data row5 col1">$4,185,268</td>
+<td id="T_3bee8_row5_col2" class="data row5 col2">129</td>
+<td id="T_3bee8_row5_col3" class="data row5 col3">$395,456</td>
+<td id="T_3bee8_row5_col4" class="data row5 col4">0.34%</td>
+<td id="T_3bee8_row5_col5" class="data row5 col5">9.4%</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<div id="f8263d14" class="cell" data-execution_count="14">
+<div id="c9e1b45b" class="cell" data-execution_count="14">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">13</span>, <span class="dv">4</span>))</span>
@@ -4546,7 +4546,7 @@ Major donor-years that include a soft credit: 97%</code></pre>
 <li><strong>Lapsed 6+ yrs:</strong> last gift 6+ years before FY <em>t</em>, almost all legacy-era donors</li>
 </ul>
 <p>Features use only FY ≤ <em>t</em>; outcomes use FY <em>t + 1</em> onward.</p>
-<div id="84a799ea" class="cell" data-execution_count="15">
+<div id="b6ecab82" class="cell" data-execution_count="15">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># combined history: legacy household credit (pre-FY2021) + Unite giving (FY2021+)</span></span>
@@ -4602,12 +4602,12 @@ Major donor-years that include a soft credit: 97%</code></pre>
 <style type="text/css">
 </style>
 
-<table id="T_f39fe" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_e44cf" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_f39fe_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
-<th id="T_f39fe_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">donors</th>
+<th id="T_e44cf_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
+<th id="T_e44cf_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">donors</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">status</th>
@@ -4617,24 +4617,24 @@ Major donor-years that include a soft credit: 97%</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_f39fe_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Active</td>
-<td id="T_f39fe_row0_col0" class="data row0 col0">160,919</td>
-<td id="T_f39fe_row0_col1" class="data row0 col1">60,556</td>
+<td id="T_e44cf_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Active</td>
+<td id="T_e44cf_row0_col0" class="data row0 col0">160,919</td>
+<td id="T_e44cf_row0_col1" class="data row0 col1">60,556</td>
 </tr>
 <tr class="even">
-<td id="T_f39fe_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Lapsed 1-2 yrs</td>
-<td id="T_f39fe_row1_col0" class="data row1 col0">71,181</td>
-<td id="T_f39fe_row1_col1" class="data row1 col1">42,095</td>
+<td id="T_e44cf_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Lapsed 1-2 yrs</td>
+<td id="T_e44cf_row1_col0" class="data row1 col0">71,181</td>
+<td id="T_e44cf_row1_col1" class="data row1 col1">42,095</td>
 </tr>
 <tr class="odd">
-<td id="T_f39fe_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Lapsed 3-5 yrs</td>
-<td id="T_f39fe_row2_col0" class="data row2 col0">95,628</td>
-<td id="T_f39fe_row2_col1" class="data row2 col1">44,564</td>
+<td id="T_e44cf_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Lapsed 3-5 yrs</td>
+<td id="T_e44cf_row2_col0" class="data row2 col0">95,628</td>
+<td id="T_e44cf_row2_col1" class="data row2 col1">44,564</td>
 </tr>
 <tr class="even">
-<td id="T_f39fe_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Lapsed 6+ yrs</td>
-<td id="T_f39fe_row3_col0" class="data row3 col0">305,138</td>
-<td id="T_f39fe_row3_col1" class="data row3 col1">76,288</td>
+<td id="T_e44cf_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Lapsed 6+ yrs</td>
+<td id="T_e44cf_row3_col0" class="data row3 col0">305,138</td>
+<td id="T_e44cf_row3_col1" class="data row3 col1">76,288</td>
 </tr>
 </tbody>
 </table>
@@ -4643,7 +4643,7 @@ Major donor-years that include a soft credit: 97%</code></pre>
 </section>
 <section id="conversion-base-rates" class="level3">
 <h3 class="anchored" data-anchor-id="conversion-base-rates">Conversion base rates</h3>
-<div id="0354d4a2" class="cell" data-execution_count="16">
+<div id="743a10a4" class="cell" data-execution_count="16">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rates(col, years):</span>
@@ -4670,55 +4670,55 @@ Major donor-years that include a soft credit: 97%</code></pre>
 <style type="text/css">
 </style>
 
-<table id="T_cb373" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_bb2a4" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_cb373_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">snapshot years</th>
-<th id="T_cb373_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">eligible donor-years</th>
-<th id="T_cb373_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">converters</th>
-<th id="T_cb373_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">conversion rate</th>
-<th id="T_cb373_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">rate, never-major</th>
-<th id="T_cb373_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">rate, former major</th>
-<th id="T_cb373_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">share of converters who were former majors</th>
+<th id="T_bb2a4_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">snapshot years</th>
+<th id="T_bb2a4_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">eligible donor-years</th>
+<th id="T_bb2a4_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">converters</th>
+<th id="T_bb2a4_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">conversion rate</th>
+<th id="T_bb2a4_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">rate, never-major</th>
+<th id="T_bb2a4_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">rate, former major</th>
+<th id="T_bb2a4_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">share of converters who were former majors</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_cb373_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">12 months</td>
-<td id="T_cb373_row0_col0" class="data row0 col0">FY2021-2025</td>
-<td id="T_cb373_row0_col1" class="data row0 col1">632,866</td>
-<td id="T_cb373_row0_col2" class="data row0 col2">293</td>
-<td id="T_cb373_row0_col3" class="data row0 col3">0.046%</td>
-<td id="T_cb373_row0_col4" class="data row0 col4">0.023%</td>
-<td id="T_cb373_row0_col5" class="data row0 col5">7.91%</td>
-<td id="T_cb373_row0_col6" class="data row0 col6">50%</td>
+<td id="T_bb2a4_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">12 months</td>
+<td id="T_bb2a4_row0_col0" class="data row0 col0">FY2021-2025</td>
+<td id="T_bb2a4_row0_col1" class="data row0 col1">632,866</td>
+<td id="T_bb2a4_row0_col2" class="data row0 col2">293</td>
+<td id="T_bb2a4_row0_col3" class="data row0 col3">0.046%</td>
+<td id="T_bb2a4_row0_col4" class="data row0 col4">0.023%</td>
+<td id="T_bb2a4_row0_col5" class="data row0 col5">7.91%</td>
+<td id="T_bb2a4_row0_col6" class="data row0 col6">50%</td>
 </tr>
 <tr class="even">
-<td id="T_cb373_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">within 3 years</td>
-<td id="T_cb373_row1_col0" class="data row1 col0">FY2021-2023</td>
-<td id="T_cb373_row1_col1" class="data row1 col1">365,420</td>
-<td id="T_cb373_row1_col2" class="data row1 col2">391</td>
-<td id="T_cb373_row1_col3" class="data row1 col3">0.107%</td>
-<td id="T_cb373_row1_col4" class="data row1 col4">0.065%</td>
-<td id="T_cb373_row1_col5" class="data row1 col5">15.31%</td>
-<td id="T_cb373_row1_col6" class="data row1 col6">39%</td>
+<td id="T_bb2a4_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">within 3 years</td>
+<td id="T_bb2a4_row1_col0" class="data row1 col0">FY2021-2023</td>
+<td id="T_bb2a4_row1_col1" class="data row1 col1">365,420</td>
+<td id="T_bb2a4_row1_col2" class="data row1 col2">391</td>
+<td id="T_bb2a4_row1_col3" class="data row1 col3">0.107%</td>
+<td id="T_bb2a4_row1_col4" class="data row1 col4">0.065%</td>
+<td id="T_bb2a4_row1_col5" class="data row1 col5">15.31%</td>
+<td id="T_bb2a4_row1_col6" class="data row1 col6">39%</td>
 </tr>
 <tr class="odd">
-<td id="T_cb373_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">within 5 years</td>
-<td id="T_cb373_row2_col0" class="data row2 col0">FY2021</td>
-<td id="T_cb373_row2_col1" class="data row2 col1">116,466</td>
-<td id="T_cb373_row2_col2" class="data row2 col2">203</td>
-<td id="T_cb373_row2_col3" class="data row2 col3">0.174%</td>
-<td id="T_cb373_row2_col4" class="data row2 col4">0.121%</td>
-<td id="T_cb373_row2_col5" class="data row2 col5">21.07%</td>
-<td id="T_cb373_row2_col6" class="data row2 col6">31%</td>
+<td id="T_bb2a4_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">within 5 years</td>
+<td id="T_bb2a4_row2_col0" class="data row2 col0">FY2021</td>
+<td id="T_bb2a4_row2_col1" class="data row2 col1">116,466</td>
+<td id="T_bb2a4_row2_col2" class="data row2 col2">203</td>
+<td id="T_bb2a4_row2_col3" class="data row2 col3">0.174%</td>
+<td id="T_bb2a4_row2_col4" class="data row2 col4">0.121%</td>
+<td id="T_bb2a4_row2_col5" class="data row2 col5">21.07%</td>
+<td id="T_bb2a4_row2_col6" class="data row2 col6">31%</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<div id="c3028e45" class="cell" data-execution_count="17">
+<div id="1a1cf8ea" class="cell" data-execution_count="17">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>yr <span class="op">=</span> panel.groupby(<span class="st">&quot;fy&quot;</span>).agg(eligible<span class="op">=</span>(<span class="st">&quot;conv_12m&quot;</span>, <span class="st">&quot;size&quot;</span>), converters<span class="op">=</span>(<span class="st">&quot;conv_12m&quot;</span>, <span class="st">&quot;sum&quot;</span>), rate<span class="op">=</span>(<span class="st">&quot;conv_12m&quot;</span>, <span class="st">&quot;mean&quot;</span>))</span>
@@ -4736,45 +4736,45 @@ Major donor-years that include a soft credit: 97%</code></pre>
 <style type="text/css">
 </style>
 
-<table id="T_03d2c" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_ad4f7" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_03d2c_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">eligible</th>
-<th id="T_03d2c_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">converters</th>
-<th id="T_03d2c_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">rate</th>
+<th id="T_ad4f7_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">eligible</th>
+<th id="T_ad4f7_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">converters</th>
+<th id="T_ad4f7_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">rate</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_03d2c_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">FY2021 -&gt; FY2022</td>
-<td id="T_03d2c_row0_col0" class="data row0 col0">116,466</td>
-<td id="T_03d2c_row0_col1" class="data row0 col1">55</td>
-<td id="T_03d2c_row0_col2" class="data row0 col2">0.047%</td>
+<td id="T_ad4f7_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">FY2021 -&gt; FY2022</td>
+<td id="T_ad4f7_row0_col0" class="data row0 col0">116,466</td>
+<td id="T_ad4f7_row0_col1" class="data row0 col1">55</td>
+<td id="T_ad4f7_row0_col2" class="data row0 col2">0.047%</td>
 </tr>
 <tr class="even">
-<td id="T_03d2c_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">FY2022 -&gt; FY2023</td>
-<td id="T_03d2c_row1_col0" class="data row1 col0">121,702</td>
-<td id="T_03d2c_row1_col1" class="data row1 col1">59</td>
-<td id="T_03d2c_row1_col2" class="data row1 col2">0.048%</td>
+<td id="T_ad4f7_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">FY2022 -&gt; FY2023</td>
+<td id="T_ad4f7_row1_col0" class="data row1 col0">121,702</td>
+<td id="T_ad4f7_row1_col1" class="data row1 col1">59</td>
+<td id="T_ad4f7_row1_col2" class="data row1 col2">0.048%</td>
 </tr>
 <tr class="odd">
-<td id="T_03d2c_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">FY2023 -&gt; FY2024</td>
-<td id="T_03d2c_row2_col0" class="data row2 col0">127,252</td>
-<td id="T_03d2c_row2_col1" class="data row2 col1">42</td>
-<td id="T_03d2c_row2_col2" class="data row2 col2">0.033%</td>
+<td id="T_ad4f7_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">FY2023 -&gt; FY2024</td>
+<td id="T_ad4f7_row2_col0" class="data row2 col0">127,252</td>
+<td id="T_ad4f7_row2_col1" class="data row2 col1">42</td>
+<td id="T_ad4f7_row2_col2" class="data row2 col2">0.033%</td>
 </tr>
 <tr class="even">
-<td id="T_03d2c_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">FY2024 -&gt; FY2025</td>
-<td id="T_03d2c_row3_col0" class="data row3 col0">131,496</td>
-<td id="T_03d2c_row3_col1" class="data row3 col1">49</td>
-<td id="T_03d2c_row3_col2" class="data row3 col2">0.037%</td>
+<td id="T_ad4f7_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">FY2024 -&gt; FY2025</td>
+<td id="T_ad4f7_row3_col0" class="data row3 col0">131,496</td>
+<td id="T_ad4f7_row3_col1" class="data row3 col1">49</td>
+<td id="T_ad4f7_row3_col2" class="data row3 col2">0.037%</td>
 </tr>
 <tr class="odd">
-<td id="T_03d2c_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">FY2025 -&gt; FY2026</td>
-<td id="T_03d2c_row4_col0" class="data row4 col0">135,950</td>
-<td id="T_03d2c_row4_col1" class="data row4 col1">88</td>
-<td id="T_03d2c_row4_col2" class="data row4 col2">0.065%</td>
+<td id="T_ad4f7_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">FY2025 -&gt; FY2026</td>
+<td id="T_ad4f7_row4_col0" class="data row4 col0">135,950</td>
+<td id="T_ad4f7_row4_col1" class="data row4 col1">88</td>
+<td id="T_ad4f7_row4_col2" class="data row4 col2">0.065%</td>
 </tr>
 </tbody>
 </table>
@@ -4792,7 +4792,7 @@ Major donor-years that include a soft credit: 97%</code></pre>
 </section>
 <section id="active-vs.-lapsed-donors" class="level3">
 <h3 class="anchored" data-anchor-id="active-vs.-lapsed-donors">Active vs. lapsed donors</h3>
-<div id="f7ace552" class="cell" data-execution_count="18">
+<div id="d545b1d4" class="cell" data-execution_count="18">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>seg <span class="op">=</span> panel.groupby(<span class="st">&quot;status&quot;</span>, observed<span class="op">=</span><span class="va">True</span>).agg(</span>
@@ -4821,18 +4821,18 @@ Major donor-years that include a soft credit: 97%</code></pre>
 <style type="text/css">
 </style>
 
-<table id="T_2e21b" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_d99b7" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_2e21b_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
-<th id="T_2e21b_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">converters</th>
-<th id="T_2e21b_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">conv_rate</th>
-<th id="T_2e21b_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">gave_next_fy</th>
-<th id="T_2e21b_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">former_major</th>
-<th id="T_2e21b_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">median_last_year_amount</th>
-<th id="T_2e21b_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">share of converters</th>
-<th id="T_2e21b_level0_col7" class="col_heading level0 col7" data-quarto-table-cell-role="th">former-major converters</th>
+<th id="T_d99b7_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
+<th id="T_d99b7_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">converters</th>
+<th id="T_d99b7_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">conv_rate</th>
+<th id="T_d99b7_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">gave_next_fy</th>
+<th id="T_d99b7_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">former_major</th>
+<th id="T_d99b7_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">median_last_year_amount</th>
+<th id="T_d99b7_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">share of converters</th>
+<th id="T_d99b7_level0_col7" class="col_heading level0 col7" data-quarto-table-cell-role="th">former-major converters</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">status</th>
@@ -4848,48 +4848,48 @@ Major donor-years that include a soft credit: 97%</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_2e21b_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Active</td>
-<td id="T_2e21b_row0_col0" class="data row0 col0">160,919</td>
-<td id="T_2e21b_row0_col1" class="data row0 col1">269</td>
-<td id="T_2e21b_row0_col2" class="data row0 col2">0.167%</td>
-<td id="T_2e21b_row0_col3" class="data row0 col3">77.9%</td>
-<td id="T_2e21b_row0_col4" class="data row0 col4">0.6%</td>
-<td id="T_2e21b_row0_col5" class="data row0 col5">$60</td>
-<td id="T_2e21b_row0_col6" class="data row0 col6">92%</td>
-<td id="T_2e21b_row0_col7" class="data row0 col7">138</td>
+<td id="T_d99b7_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Active</td>
+<td id="T_d99b7_row0_col0" class="data row0 col0">160,919</td>
+<td id="T_d99b7_row0_col1" class="data row0 col1">269</td>
+<td id="T_d99b7_row0_col2" class="data row0 col2">0.167%</td>
+<td id="T_d99b7_row0_col3" class="data row0 col3">77.9%</td>
+<td id="T_d99b7_row0_col4" class="data row0 col4">0.6%</td>
+<td id="T_d99b7_row0_col5" class="data row0 col5">$60</td>
+<td id="T_d99b7_row0_col6" class="data row0 col6">92%</td>
+<td id="T_d99b7_row0_col7" class="data row0 col7">138</td>
 </tr>
 <tr class="even">
-<td id="T_2e21b_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Lapsed 1-2 yrs</td>
-<td id="T_2e21b_row1_col0" class="data row1 col0">71,181</td>
-<td id="T_2e21b_row1_col1" class="data row1 col1">9</td>
-<td id="T_2e21b_row1_col2" class="data row1 col2">0.013%</td>
-<td id="T_2e21b_row1_col3" class="data row1 col3">3.0%</td>
-<td id="T_2e21b_row1_col4" class="data row1 col4">0.4%</td>
-<td id="T_2e21b_row1_col5" class="data row1 col5">$14</td>
-<td id="T_2e21b_row1_col6" class="data row1 col6">3%</td>
-<td id="T_2e21b_row1_col7" class="data row1 col7">8</td>
+<td id="T_d99b7_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Lapsed 1-2 yrs</td>
+<td id="T_d99b7_row1_col0" class="data row1 col0">71,181</td>
+<td id="T_d99b7_row1_col1" class="data row1 col1">9</td>
+<td id="T_d99b7_row1_col2" class="data row1 col2">0.013%</td>
+<td id="T_d99b7_row1_col3" class="data row1 col3">3.0%</td>
+<td id="T_d99b7_row1_col4" class="data row1 col4">0.4%</td>
+<td id="T_d99b7_row1_col5" class="data row1 col5">$14</td>
+<td id="T_d99b7_row1_col6" class="data row1 col6">3%</td>
+<td id="T_d99b7_row1_col7" class="data row1 col7">8</td>
 </tr>
 <tr class="odd">
-<td id="T_2e21b_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Lapsed 3-5 yrs</td>
-<td id="T_2e21b_row2_col0" class="data row2 col0">95,628</td>
-<td id="T_2e21b_row2_col1" class="data row2 col1">6</td>
-<td id="T_2e21b_row2_col2" class="data row2 col2">0.006%</td>
-<td id="T_2e21b_row2_col3" class="data row2 col3">3.2%</td>
-<td id="T_2e21b_row2_col4" class="data row2 col4">0.3%</td>
-<td id="T_2e21b_row2_col5" class="data row2 col5">$13</td>
-<td id="T_2e21b_row2_col6" class="data row2 col6">2%</td>
-<td id="T_2e21b_row2_col7" class="data row2 col7">1</td>
+<td id="T_d99b7_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Lapsed 3-5 yrs</td>
+<td id="T_d99b7_row2_col0" class="data row2 col0">95,628</td>
+<td id="T_d99b7_row2_col1" class="data row2 col1">6</td>
+<td id="T_d99b7_row2_col2" class="data row2 col2">0.006%</td>
+<td id="T_d99b7_row2_col3" class="data row2 col3">3.2%</td>
+<td id="T_d99b7_row2_col4" class="data row2 col4">0.3%</td>
+<td id="T_d99b7_row2_col5" class="data row2 col5">$13</td>
+<td id="T_d99b7_row2_col6" class="data row2 col6">2%</td>
+<td id="T_d99b7_row2_col7" class="data row2 col7">1</td>
 </tr>
 <tr class="even">
-<td id="T_2e21b_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Lapsed 6+ yrs</td>
-<td id="T_2e21b_row3_col0" class="data row3 col0">305,138</td>
-<td id="T_2e21b_row3_col1" class="data row3 col1">9</td>
-<td id="T_2e21b_row3_col2" class="data row3 col2">0.003%</td>
-<td id="T_2e21b_row3_col3" class="data row3 col3">3.2%</td>
-<td id="T_2e21b_row3_col4" class="data row3 col4">0.1%</td>
-<td id="T_2e21b_row3_col5" class="data row3 col5">$10</td>
-<td id="T_2e21b_row3_col6" class="data row3 col6">3%</td>
-<td id="T_2e21b_row3_col7" class="data row3 col7">0</td>
+<td id="T_d99b7_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Lapsed 6+ yrs</td>
+<td id="T_d99b7_row3_col0" class="data row3 col0">305,138</td>
+<td id="T_d99b7_row3_col1" class="data row3 col1">9</td>
+<td id="T_d99b7_row3_col2" class="data row3 col2">0.003%</td>
+<td id="T_d99b7_row3_col3" class="data row3 col3">3.2%</td>
+<td id="T_d99b7_row3_col4" class="data row3 col4">0.1%</td>
+<td id="T_d99b7_row3_col5" class="data row3 col5">$10</td>
+<td id="T_d99b7_row3_col6" class="data row3 col6">3%</td>
+<td id="T_d99b7_row3_col7" class="data row3 col7">0</td>
 </tr>
 </tbody>
 </table>
@@ -4902,7 +4902,7 @@ Major donor-years that include a soft credit: 97%</code></pre>
 </div>
 </div>
 </div>
-<div id="e4c4ed38" class="cell" data-execution_count="19">
+<div id="c2c5ddc7" class="cell" data-execution_count="19">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># lapsed converters: how recently did they give, and how much, before lapsing?</span></span>
@@ -5154,7 +5154,7 @@ Major donor-years that include a soft credit: 97%</code></pre>
 <section id="context-year-to-year-movement-between-giving-bands" class="level3">
 <h3 class="anchored" data-anchor-id="context-year-to-year-movement-between-giving-bands">Context: year-to-year movement between giving bands</h3>
 <p>Most donors stay in their band. The matrix shows where FY2025 donors (all donors, not just eligible ones) landed in FY2026.</p>
-<div id="9c0721c6" class="cell" data-execution_count="20">
+<div id="57f043f9" class="cell" data-execution_count="20">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>bands_ <span class="op">=</span> [<span class="op">-</span>np.inf, <span class="dv">0</span>, <span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">250</span>, <span class="dv">599</span>, <span class="dv">1199</span>, np.inf]</span>
@@ -5191,7 +5191,7 @@ $1,200+       41</code></pre>
 <section id="giving-history-as-predictors" class="level2">
 <h2 class="anchored" data-anchor-id="giving-history-as-predictors">7. Giving history as predictors</h2>
 <p>Each chart shows the 12-month conversion rate by feature level (FY2021–FY2025 snapshots pooled, active and lapsed donors together). With so few converters, small groups are noisy, so counts are shown. Lifts are relative to the overall rate (0.046%), which is low because most eligible donor-years are lapsed. Compare <strong>rates</strong> across groups rather than reading lifts on their own.</p>
-<div id="0d736e4e" class="cell" data-execution_count="21">
+<div id="70ec5f31" class="cell" data-execution_count="21">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>overall <span class="op">=</span> panel[<span class="st">&quot;conv_12m&quot;</span>].mean()</span>
@@ -5237,7 +5237,7 @@ $1,200+       41</code></pre>
 </div>
 </div>
 </div>
-<div id="d0008097" class="cell" data-execution_count="22">
+<div id="552539a1" class="cell" data-execution_count="22">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>flags <span class="op">=</span> {</span>
@@ -5271,57 +5271,57 @@ $1,200+       41</code></pre>
 <style type="text/css">
 </style>
 
-<table id="T_6750c" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_15b17" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_6750c_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">share of donor-years</th>
-<th id="T_6750c_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">rate if yes</th>
-<th id="T_6750c_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">rate if no</th>
-<th id="T_6750c_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">converters if yes</th>
-<th id="T_6750c_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">lift if yes</th>
+<th id="T_15b17_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">share of donor-years</th>
+<th id="T_15b17_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">rate if yes</th>
+<th id="T_15b17_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">rate if no</th>
+<th id="T_15b17_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">converters if yes</th>
+<th id="T_15b17_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">lift if yes</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_6750c_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Former major donor</td>
-<td id="T_6750c_row0_col0" class="data row0 col0">0.3%</td>
-<td id="T_6750c_row0_col1" class="data row0 col1">7.91%</td>
-<td id="T_6750c_row0_col2" class="data row0 col2">0.023%</td>
-<td id="T_6750c_row0_col3" class="data row0 col3">147.0</td>
-<td id="T_6750c_row0_col4" class="data row0 col4">170.8x</td>
+<td id="T_15b17_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Former major donor</td>
+<td id="T_15b17_row0_col0" class="data row0 col0">0.3%</td>
+<td id="T_15b17_row0_col1" class="data row0 col1">7.91%</td>
+<td id="T_15b17_row0_col2" class="data row0 col2">0.023%</td>
+<td id="T_15b17_row0_col3" class="data row0 col3">147.0</td>
+<td id="T_15b17_row0_col4" class="data row0 col4">170.8x</td>
 </tr>
 <tr class="even">
-<td id="T_6750c_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Soft credit (DAF / sponsor) in FY t</td>
-<td id="T_6750c_row1_col0" class="data row1 col0">0.4%</td>
-<td id="T_6750c_row1_col1" class="data row1 col1">3.32%</td>
-<td id="T_6750c_row1_col2" class="data row1 col2">0.032%</td>
-<td id="T_6750c_row1_col3" class="data row1 col3">89.0</td>
-<td id="T_6750c_row1_col4" class="data row1 col4">71.8x</td>
+<td id="T_15b17_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Soft credit (DAF / sponsor) in FY t</td>
+<td id="T_15b17_row1_col0" class="data row1 col0">0.4%</td>
+<td id="T_15b17_row1_col1" class="data row1 col1">3.32%</td>
+<td id="T_15b17_row1_col2" class="data row1 col2">0.032%</td>
+<td id="T_15b17_row1_col3" class="data row1 col3">89.0</td>
+<td id="T_15b17_row1_col4" class="data row1 col4">71.8x</td>
 </tr>
 <tr class="odd">
-<td id="T_6750c_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Any soft credit up to FY t</td>
-<td id="T_6750c_row2_col0" class="data row2 col0">1.2%</td>
-<td id="T_6750c_row2_col1" class="data row2 col1">2.20%</td>
-<td id="T_6750c_row2_col2" class="data row2 col2">0.021%</td>
-<td id="T_6750c_row2_col3" class="data row2 col3">161.0</td>
-<td id="T_6750c_row2_col4" class="data row2 col4">47.6x</td>
+<td id="T_15b17_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Any soft credit up to FY t</td>
+<td id="T_15b17_row2_col0" class="data row2 col0">1.2%</td>
+<td id="T_15b17_row2_col1" class="data row2 col1">2.20%</td>
+<td id="T_15b17_row2_col2" class="data row2 col2">0.021%</td>
+<td id="T_15b17_row2_col3" class="data row2 col3">161.0</td>
+<td id="T_15b17_row2_col4" class="data row2 col4">47.6x</td>
 </tr>
 <tr class="even">
-<td id="T_6750c_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Upgrade gift in FY t</td>
-<td id="T_6750c_row3_col0" class="data row3 col0">0.5%</td>
-<td id="T_6750c_row3_col1" class="data row3 col1">1.48%</td>
-<td id="T_6750c_row3_col2" class="data row3 col2">0.038%</td>
-<td id="T_6750c_row3_col3" class="data row3 col3">51.0</td>
-<td id="T_6750c_row3_col4" class="data row3 col4">32.1x</td>
+<td id="T_15b17_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Upgrade gift in FY t</td>
+<td id="T_15b17_row3_col0" class="data row3 col0">0.5%</td>
+<td id="T_15b17_row3_col1" class="data row3 col1">1.48%</td>
+<td id="T_15b17_row3_col2" class="data row3 col2">0.038%</td>
+<td id="T_15b17_row3_col3" class="data row3 col3">51.0</td>
+<td id="T_15b17_row3_col4" class="data row3 col4">32.1x</td>
 </tr>
 <tr class="odd">
-<td id="T_6750c_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">Recurring (sustainer) in FY t</td>
-<td id="T_6750c_row4_col0" class="data row4 col0">16.6%</td>
-<td id="T_6750c_row4_col1" class="data row4 col1">0.11%</td>
-<td id="T_6750c_row4_col2" class="data row4 col2">0.033%</td>
-<td id="T_6750c_row4_col3" class="data row4 col3">117.0</td>
-<td id="T_6750c_row4_col4" class="data row4 col4">2.4x</td>
+<td id="T_15b17_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">Recurring (sustainer) in FY t</td>
+<td id="T_15b17_row4_col0" class="data row4 col0">16.6%</td>
+<td id="T_15b17_row4_col1" class="data row4 col1">0.11%</td>
+<td id="T_15b17_row4_col2" class="data row4 col2">0.033%</td>
+<td id="T_15b17_row4_col3" class="data row4 col3">117.0</td>
+<td id="T_15b17_row4_col4" class="data row4 col4">2.4x</td>
 </tr>
 </tbody>
 </table>
@@ -5334,7 +5334,7 @@ $1,200+       41</code></pre>
 </div>
 </div>
 </div>
-<div id="84ec01c5" class="cell" data-execution_count="23">
+<div id="7754d8c5" class="cell" data-execution_count="23">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># sustainers renew far more often but convert less: the two outcomes behave differently</span></span>
@@ -5346,14 +5346,14 @@ $1,200+       41</code></pre>
 <style type="text/css">
 </style>
 
-<table id="T_3d78e" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_a1b57" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_3d78e_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
-<th id="T_3d78e_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">gave_again</th>
-<th id="T_3d78e_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">converted</th>
-<th id="T_3d78e_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">median_giving_t</th>
+<th id="T_a1b57_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
+<th id="T_a1b57_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">gave_again</th>
+<th id="T_a1b57_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">converted</th>
+<th id="T_a1b57_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">median_giving_t</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">donor_type</th>
@@ -5365,31 +5365,31 @@ $1,200+       41</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_3d78e_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Lapsed (no gift in FY t)</td>
-<td id="T_3d78e_row0_col0" class="data row0 col0">471,947</td>
-<td id="T_3d78e_row0_col1" class="data row0 col1">3.1%</td>
-<td id="T_3d78e_row0_col2" class="data row0 col2">0.005%</td>
-<td id="T_3d78e_row0_col3" class="data row0 col3">$0</td>
+<td id="T_a1b57_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Lapsed (no gift in FY t)</td>
+<td id="T_a1b57_row0_col0" class="data row0 col0">471,947</td>
+<td id="T_a1b57_row0_col1" class="data row0 col1">3.1%</td>
+<td id="T_a1b57_row0_col2" class="data row0 col2">0.005%</td>
+<td id="T_a1b57_row0_col3" class="data row0 col3">$0</td>
 </tr>
 <tr class="even">
-<td id="T_3d78e_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">One-time only</td>
-<td id="T_3d78e_row1_col0" class="data row1 col0">55,943</td>
-<td id="T_3d78e_row1_col1" class="data row1 col1">51.4%</td>
-<td id="T_3d78e_row1_col2" class="data row1 col2">0.272%</td>
-<td id="T_3d78e_row1_col3" class="data row1 col3">$9</td>
+<td id="T_a1b57_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">One-time only</td>
+<td id="T_a1b57_row1_col0" class="data row1 col0">55,943</td>
+<td id="T_a1b57_row1_col1" class="data row1 col1">51.4%</td>
+<td id="T_a1b57_row1_col2" class="data row1 col2">0.272%</td>
+<td id="T_a1b57_row1_col3" class="data row1 col3">$9</td>
 </tr>
 <tr class="odd">
-<td id="T_3d78e_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Recurring (sustainer)</td>
-<td id="T_3d78e_row2_col0" class="data row2 col0">104,976</td>
-<td id="T_3d78e_row2_col1" class="data row2 col1">92.1%</td>
-<td id="T_3d78e_row2_col2" class="data row2 col2">0.111%</td>
-<td id="T_3d78e_row2_col3" class="data row2 col3">$72</td>
+<td id="T_a1b57_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Recurring (sustainer)</td>
+<td id="T_a1b57_row2_col0" class="data row2 col0">104,976</td>
+<td id="T_a1b57_row2_col1" class="data row2 col1">92.1%</td>
+<td id="T_a1b57_row2_col2" class="data row2 col2">0.111%</td>
+<td id="T_a1b57_row2_col3" class="data row2 col3">$72</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<div id="021f0cd8" class="cell" data-execution_count="24">
+<div id="a80b6041" class="cell" data-execution_count="24">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># among never-major donors only (the group staff are least likely to know already)</span></span>
@@ -5400,14 +5400,14 @@ $1,200+       41</code></pre>
 <style type="text/css">
 </style>
 
-<table id="T_3598d" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_77497" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_3598d_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
-<th id="T_3598d_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">converters</th>
-<th id="T_3598d_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">rate</th>
-<th id="T_3598d_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">lift</th>
+<th id="T_77497_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
+<th id="T_77497_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">converters</th>
+<th id="T_77497_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">rate</th>
+<th id="T_77497_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">lift</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">giving_band</th>
@@ -5419,46 +5419,46 @@ $1,200+       41</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_3598d_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">$0 (lapsed)</td>
-<td id="T_3598d_row0_col0" class="data row0 col0">471,051</td>
-<td id="T_3598d_row0_col1" class="data row0 col1">15</td>
-<td id="T_3598d_row0_col2" class="data row0 col2">0.003%</td>
-<td id="T_3598d_row0_col3" class="data row0 col3">0.1x</td>
+<td id="T_77497_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">$0 (lapsed)</td>
+<td id="T_77497_row0_col0" class="data row0 col0">471,051</td>
+<td id="T_77497_row0_col1" class="data row0 col1">15</td>
+<td id="T_77497_row0_col2" class="data row0 col2">0.003%</td>
+<td id="T_77497_row0_col3" class="data row0 col3">0.1x</td>
 </tr>
 <tr class="even">
-<td id="T_3598d_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">$1-50</td>
-<td id="T_3598d_row1_col0" class="data row1 col0">44,924</td>
-<td id="T_3598d_row1_col1" class="data row1 col1">11</td>
-<td id="T_3598d_row1_col2" class="data row1 col2">0.024%</td>
-<td id="T_3598d_row1_col3" class="data row1 col3">0.5x</td>
+<td id="T_77497_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">$1-50</td>
+<td id="T_77497_row1_col0" class="data row1 col0">44,924</td>
+<td id="T_77497_row1_col1" class="data row1 col1">11</td>
+<td id="T_77497_row1_col2" class="data row1 col2">0.024%</td>
+<td id="T_77497_row1_col3" class="data row1 col3">0.5x</td>
 </tr>
 <tr class="odd">
-<td id="T_3598d_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">$51-100</td>
-<td id="T_3598d_row2_col0" class="data row2 col0">67,241</td>
-<td id="T_3598d_row2_col1" class="data row2 col1">15</td>
-<td id="T_3598d_row2_col2" class="data row2 col2">0.022%</td>
-<td id="T_3598d_row2_col3" class="data row2 col3">0.5x</td>
+<td id="T_77497_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">$51-100</td>
+<td id="T_77497_row2_col0" class="data row2 col0">67,241</td>
+<td id="T_77497_row2_col1" class="data row2 col1">15</td>
+<td id="T_77497_row2_col2" class="data row2 col2">0.022%</td>
+<td id="T_77497_row2_col3" class="data row2 col3">0.5x</td>
 </tr>
 <tr class="even">
-<td id="T_3598d_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">$101-250</td>
-<td id="T_3598d_row3_col0" class="data row3 col0">45,677</td>
-<td id="T_3598d_row3_col1" class="data row3 col1">41</td>
-<td id="T_3598d_row3_col2" class="data row3 col2">0.090%</td>
-<td id="T_3598d_row3_col3" class="data row3 col3">1.9x</td>
+<td id="T_77497_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">$101-250</td>
+<td id="T_77497_row3_col0" class="data row3 col0">45,677</td>
+<td id="T_77497_row3_col1" class="data row3 col1">41</td>
+<td id="T_77497_row3_col2" class="data row3 col2">0.090%</td>
+<td id="T_77497_row3_col3" class="data row3 col3">1.9x</td>
 </tr>
 <tr class="odd">
-<td id="T_3598d_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">$251-599</td>
-<td id="T_3598d_row4_col0" class="data row4 col0">1,119</td>
-<td id="T_3598d_row4_col1" class="data row4 col1">7</td>
-<td id="T_3598d_row4_col2" class="data row4 col2">0.626%</td>
-<td id="T_3598d_row4_col3" class="data row4 col3">13.5x</td>
+<td id="T_77497_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">$251-599</td>
+<td id="T_77497_row4_col0" class="data row4 col0">1,119</td>
+<td id="T_77497_row4_col1" class="data row4 col1">7</td>
+<td id="T_77497_row4_col2" class="data row4 col2">0.626%</td>
+<td id="T_77497_row4_col3" class="data row4 col3">13.5x</td>
 </tr>
 <tr class="even">
-<td id="T_3598d_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">$600-1,199</td>
-<td id="T_3598d_row5_col0" class="data row5 col0">995</td>
-<td id="T_3598d_row5_col1" class="data row5 col1">57</td>
-<td id="T_3598d_row5_col2" class="data row5 col2">5.729%</td>
-<td id="T_3598d_row5_col3" class="data row5 col3">123.7x</td>
+<td id="T_77497_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">$600-1,199</td>
+<td id="T_77497_row5_col0" class="data row5 col0">995</td>
+<td id="T_77497_row5_col1" class="data row5 col1">57</td>
+<td id="T_77497_row5_col2" class="data row5 col2">5.729%</td>
+<td id="T_77497_row5_col3" class="data row5 col3">123.7x</td>
 </tr>
 </tbody>
 </table>
@@ -5470,7 +5470,7 @@ $1,200+       41</code></pre>
 <section id="constituent-attributes-and-leakage" class="level2">
 <h2 class="anchored" data-anchor-id="constituent-attributes-and-leakage">8. Constituent attributes and leakage</h2>
 <p>The constituents table describes each person <strong>as of the end of the data (FY2026)</strong>. Some fields are stable (gender, state). Others are <strong>snapshots</strong> that would leak future information if used as features for earlier years.</p>
-<div id="61ae3ff7" class="cell" data-execution_count="25">
+<div id="f351b3d8" class="cell" data-execution_count="25">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>people <span class="op">=</span> con[con[<span class="st">&quot;Primary Constituent Type&quot;</span>] <span class="op">!=</span> <span class="st">&quot;Organization&quot;</span>].copy()</span>
@@ -5591,7 +5591,7 @@ $1,200+       41</code></pre>
 </div>
 </div>
 </div>
-<div id="46456b92" class="cell" data-execution_count="26">
+<div id="77cab8e2" class="cell" data-execution_count="26">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>u <span class="op">=</span> people.set_index(<span class="st">&quot;Constituent ID&quot;</span>)</span>
@@ -5608,7 +5608,7 @@ Spearman corr, Lifetime UofU Fundraising vs. PBS giving FY2021-26: 0.54</code></
 </div>
 <p><strong>Several snapshot fields are effectively the FY2026 outcome:</strong> - <code>Annual Giving Group</code> maps exactly onto FY2026 giving: ND = no FY2026 gift, and CD = $1,200+. - <code>Major Donor Class</code> = Broadcaster or Director only for FY2026 major donors. - The sustainer flag is only ever true for FY2026 givers. - <code>Previous FY UofU Cash</code> is positive <strong>exactly</strong> when the person gave to PBS in FY2025, and <code>Lifetime UofU Fundraising</code> tracks PBS giving.</p>
 <p>These fields describe donors at the end of the data, so using them as features for earlier years would leak the outcome. <strong>Exclude them all.</strong> Recurring status is rebuilt from each year’s payments instead, and age is rolled back to the snapshot year (<code>Age − (2026 − t)</code>).</p>
-<div id="1993d16f" class="cell" data-execution_count="27">
+<div id="7d185831" class="cell" data-execution_count="27">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>attr <span class="op">=</span> panel.merge(</span>
@@ -5642,7 +5642,7 @@ Spearman corr, Lifetime UofU Fundraising vs. PBS giving FY2021-26: 0.54</code></
 <section id="solicitations" class="level2">
 <h2 class="anchored" data-anchor-id="solicitations">9. Solicitations</h2>
 <p><code>campaign_members</code> records every solicitation (FY2021–FY2026) and whether the person paid on the same marketing code that fiscal year. <code>campaign_start_date</code> is a fiscal-year marker, not a contact date.</p>
-<div id="2ab670ba" class="cell" data-execution_count="28">
+<div id="9790fc57" class="cell" data-execution_count="28">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>by_year <span class="op">=</span> members.groupby(<span class="st">&quot;fy&quot;</span>).agg(solicitations<span class="op">=</span>(<span class="st">&quot;responded&quot;</span>, <span class="st">&quot;size&quot;</span>), people<span class="op">=</span>(<span class="st">&quot;constituent_id&quot;</span>, <span class="st">&quot;nunique&quot;</span>), response_rate<span class="op">=</span>(<span class="st">&quot;responded&quot;</span>, <span class="st">&quot;mean&quot;</span>))</span>
@@ -5653,14 +5653,14 @@ Spearman corr, Lifetime UofU Fundraising vs. PBS giving FY2021-26: 0.54</code></
 <style type="text/css">
 </style>
 
-<table id="T_54ccb" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_057b7" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_54ccb_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">solicitations</th>
-<th id="T_54ccb_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">people</th>
-<th id="T_54ccb_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">response_rate</th>
-<th id="T_54ccb_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">solicitations per person</th>
+<th id="T_057b7_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">solicitations</th>
+<th id="T_057b7_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">people</th>
+<th id="T_057b7_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">response_rate</th>
+<th id="T_057b7_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">solicitations per person</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">fy</th>
@@ -5672,52 +5672,52 @@ Spearman corr, Lifetime UofU Fundraising vs. PBS giving FY2021-26: 0.54</code></
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_54ccb_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">2021</td>
-<td id="T_54ccb_row0_col0" class="data row0 col0">504,933</td>
-<td id="T_54ccb_row0_col1" class="data row0 col1">41,992</td>
-<td id="T_54ccb_row0_col2" class="data row0 col2">2.10%</td>
-<td id="T_54ccb_row0_col3" class="data row0 col3">12.0</td>
+<td id="T_057b7_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">2021</td>
+<td id="T_057b7_row0_col0" class="data row0 col0">504,933</td>
+<td id="T_057b7_row0_col1" class="data row0 col1">41,992</td>
+<td id="T_057b7_row0_col2" class="data row0 col2">2.10%</td>
+<td id="T_057b7_row0_col3" class="data row0 col3">12.0</td>
 </tr>
 <tr class="even">
-<td id="T_54ccb_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">2022</td>
-<td id="T_54ccb_row1_col0" class="data row1 col0">675,165</td>
-<td id="T_54ccb_row1_col1" class="data row1 col1">58,675</td>
-<td id="T_54ccb_row1_col2" class="data row1 col2">1.65%</td>
-<td id="T_54ccb_row1_col3" class="data row1 col3">11.5</td>
+<td id="T_057b7_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">2022</td>
+<td id="T_057b7_row1_col0" class="data row1 col0">675,165</td>
+<td id="T_057b7_row1_col1" class="data row1 col1">58,675</td>
+<td id="T_057b7_row1_col2" class="data row1 col2">1.65%</td>
+<td id="T_057b7_row1_col3" class="data row1 col3">11.5</td>
 </tr>
 <tr class="odd">
-<td id="T_54ccb_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2023</td>
-<td id="T_54ccb_row2_col0" class="data row2 col0">969,988</td>
-<td id="T_54ccb_row2_col1" class="data row2 col1">90,433</td>
-<td id="T_54ccb_row2_col2" class="data row2 col2">1.23%</td>
-<td id="T_54ccb_row2_col3" class="data row2 col3">10.7</td>
+<td id="T_057b7_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2023</td>
+<td id="T_057b7_row2_col0" class="data row2 col0">969,988</td>
+<td id="T_057b7_row2_col1" class="data row2 col1">90,433</td>
+<td id="T_057b7_row2_col2" class="data row2 col2">1.23%</td>
+<td id="T_057b7_row2_col3" class="data row2 col3">10.7</td>
 </tr>
 <tr class="even">
-<td id="T_54ccb_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">2024</td>
-<td id="T_54ccb_row3_col0" class="data row3 col0">1,065,866</td>
-<td id="T_54ccb_row3_col1" class="data row3 col1">100,658</td>
-<td id="T_54ccb_row3_col2" class="data row3 col2">1.14%</td>
-<td id="T_54ccb_row3_col3" class="data row3 col3">10.6</td>
+<td id="T_057b7_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">2024</td>
+<td id="T_057b7_row3_col0" class="data row3 col0">1,065,866</td>
+<td id="T_057b7_row3_col1" class="data row3 col1">100,658</td>
+<td id="T_057b7_row3_col2" class="data row3 col2">1.14%</td>
+<td id="T_057b7_row3_col3" class="data row3 col3">10.6</td>
 </tr>
 <tr class="odd">
-<td id="T_54ccb_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">2025</td>
-<td id="T_54ccb_row4_col0" class="data row4 col0">892,825</td>
-<td id="T_54ccb_row4_col1" class="data row4 col1">80,102</td>
-<td id="T_54ccb_row4_col2" class="data row4 col2">1.37%</td>
-<td id="T_54ccb_row4_col3" class="data row4 col3">11.1</td>
+<td id="T_057b7_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">2025</td>
+<td id="T_057b7_row4_col0" class="data row4 col0">892,825</td>
+<td id="T_057b7_row4_col1" class="data row4 col1">80,102</td>
+<td id="T_057b7_row4_col2" class="data row4 col2">1.37%</td>
+<td id="T_057b7_row4_col3" class="data row4 col3">11.1</td>
 </tr>
 <tr class="even">
-<td id="T_54ccb_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">2026</td>
-<td id="T_54ccb_row5_col0" class="data row5 col0">1,124,627</td>
-<td id="T_54ccb_row5_col1" class="data row5 col1">101,978</td>
-<td id="T_54ccb_row5_col2" class="data row5 col2">1.30%</td>
-<td id="T_54ccb_row5_col3" class="data row5 col3">11.0</td>
+<td id="T_057b7_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">2026</td>
+<td id="T_057b7_row5_col0" class="data row5 col0">1,124,627</td>
+<td id="T_057b7_row5_col1" class="data row5 col1">101,978</td>
+<td id="T_057b7_row5_col2" class="data row5 col2">1.30%</td>
+<td id="T_057b7_row5_col3" class="data row5 col3">11.0</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<div id="2e3710fd" class="cell" data-execution_count="29">
+<div id="9faf68ae" class="cell" data-execution_count="29">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>sol <span class="op">=</span> members.groupby([<span class="st">&quot;constituent_id&quot;</span>, <span class="st">&quot;fy&quot;</span>], observed<span class="op">=</span><span class="va">True</span>).agg(n_solicited<span class="op">=</span>(<span class="st">&quot;responded&quot;</span>, <span class="st">&quot;size&quot;</span>), n_responded<span class="op">=</span>(<span class="st">&quot;responded&quot;</span>, <span class="st">&quot;sum&quot;</span>)).reset_index()</span>
@@ -5739,12 +5739,12 @@ Spearman corr, Lifetime UofU Fundraising vs. PBS giving FY2021-26: 0.54</code></
 <style type="text/css">
 </style>
 
-<table id="T_eada8" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_9844f" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="index_name level0" data-quarto-table-cell-role="th">responded_t</th>
-<th id="T_eada8_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">No response in FY t</th>
-<th id="T_eada8_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Responded in FY t</th>
+<th id="T_9844f_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">No response in FY t</th>
+<th id="T_9844f_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Responded in FY t</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">giving_band</th>
@@ -5754,34 +5754,34 @@ Spearman corr, Lifetime UofU Fundraising vs. PBS giving FY2021-26: 0.54</code></
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_eada8_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">$0 (lapsed)</td>
-<td id="T_eada8_row0_col0" class="data row0 col0">0.01%</td>
-<td id="T_eada8_row0_col1" class="data row0 col1">nan%</td>
+<td id="T_9844f_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">$0 (lapsed)</td>
+<td id="T_9844f_row0_col0" class="data row0 col0">0.01%</td>
+<td id="T_9844f_row0_col1" class="data row0 col1">nan%</td>
 </tr>
 <tr class="even">
-<td id="T_eada8_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">$1-50</td>
-<td id="T_eada8_row1_col0" class="data row1 col0">0.03%</td>
-<td id="T_eada8_row1_col1" class="data row1 col1">0.02%</td>
+<td id="T_9844f_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">$1-50</td>
+<td id="T_9844f_row1_col0" class="data row1 col0">0.03%</td>
+<td id="T_9844f_row1_col1" class="data row1 col1">0.02%</td>
 </tr>
 <tr class="odd">
-<td id="T_eada8_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">$51-100</td>
-<td id="T_eada8_row2_col0" class="data row2 col0">0.02%</td>
-<td id="T_eada8_row2_col1" class="data row2 col1">0.02%</td>
+<td id="T_9844f_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">$51-100</td>
+<td id="T_9844f_row2_col0" class="data row2 col0">0.02%</td>
+<td id="T_9844f_row2_col1" class="data row2 col1">0.02%</td>
 </tr>
 <tr class="even">
-<td id="T_eada8_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">$101-250</td>
-<td id="T_eada8_row3_col0" class="data row3 col0">0.10%</td>
-<td id="T_eada8_row3_col1" class="data row3 col1">0.19%</td>
+<td id="T_9844f_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">$101-250</td>
+<td id="T_9844f_row3_col0" class="data row3 col0">0.10%</td>
+<td id="T_9844f_row3_col1" class="data row3 col1">0.19%</td>
 </tr>
 <tr class="odd">
-<td id="T_eada8_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">$251-599</td>
-<td id="T_eada8_row4_col0" class="data row4 col0">0.78%</td>
-<td id="T_eada8_row4_col1" class="data row4 col1">0.78%</td>
+<td id="T_9844f_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">$251-599</td>
+<td id="T_9844f_row4_col0" class="data row4 col0">0.78%</td>
+<td id="T_9844f_row4_col1" class="data row4 col1">0.78%</td>
 </tr>
 <tr class="even">
-<td id="T_eada8_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">$600-1,199</td>
-<td id="T_eada8_row5_col0" class="data row5 col0">13.68%</td>
-<td id="T_eada8_row5_col1" class="data row5 col1">12.03%</td>
+<td id="T_9844f_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">$600-1,199</td>
+<td id="T_9844f_row5_col0" class="data row5 col0">13.68%</td>
+<td id="T_9844f_row5_col1" class="data row5 col1">12.03%</td>
 </tr>
 </tbody>
 </table>
@@ -5806,7 +5806,7 @@ Spearman corr, Lifetime UofU Fundraising vs. PBS giving FY2021-26: 0.54</code></
 <li>Does it relate to conversion once giving is known?</li>
 <li>For lapsed donors, does still watching signal a return?</li>
 </ol>
-<div id="c45f76ad" class="cell" data-execution_count="30">
+<div id="1469858d" class="cell" data-execution_count="30">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>pv <span class="op">=</span> passport.groupby([<span class="st">&quot;constituent_id&quot;</span>, <span class="st">&quot;fiscal_year&quot;</span>]).agg(</span>
@@ -5835,12 +5835,12 @@ Spearman corr, titles viewed vs FY t giving (active viewers): 0.01</code></pre>
 <style type="text/css">
 </style>
 
-<table id="T_f6ab4" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_c6f8a" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_f6ab4_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
-<th id="T_f6ab4_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">share_with_viewing</th>
+<th id="T_c6f8a_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
+<th id="T_c6f8a_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">share_with_viewing</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">status</th>
@@ -5850,30 +5850,30 @@ Spearman corr, titles viewed vs FY t giving (active viewers): 0.01</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_f6ab4_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Active</td>
-<td id="T_f6ab4_row0_col0" class="data row0 col0">160,919</td>
-<td id="T_f6ab4_row0_col1" class="data row0 col1">50.3%</td>
+<td id="T_c6f8a_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Active</td>
+<td id="T_c6f8a_row0_col0" class="data row0 col0">160,919</td>
+<td id="T_c6f8a_row0_col1" class="data row0 col1">50.3%</td>
 </tr>
 <tr class="even">
-<td id="T_f6ab4_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Lapsed 1-2 yrs</td>
-<td id="T_f6ab4_row1_col0" class="data row1 col0">71,181</td>
-<td id="T_f6ab4_row1_col1" class="data row1 col1">13.4%</td>
+<td id="T_c6f8a_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Lapsed 1-2 yrs</td>
+<td id="T_c6f8a_row1_col0" class="data row1 col0">71,181</td>
+<td id="T_c6f8a_row1_col1" class="data row1 col1">13.4%</td>
 </tr>
 <tr class="odd">
-<td id="T_f6ab4_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Lapsed 3-5 yrs</td>
-<td id="T_f6ab4_row2_col0" class="data row2 col0">95,628</td>
-<td id="T_f6ab4_row2_col1" class="data row2 col1">1.5%</td>
+<td id="T_c6f8a_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Lapsed 3-5 yrs</td>
+<td id="T_c6f8a_row2_col0" class="data row2 col0">95,628</td>
+<td id="T_c6f8a_row2_col1" class="data row2 col1">1.5%</td>
 </tr>
 <tr class="even">
-<td id="T_f6ab4_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Lapsed 6+ yrs</td>
-<td id="T_f6ab4_row3_col0" class="data row3 col0">305,138</td>
-<td id="T_f6ab4_row3_col1" class="data row3 col1">1.4%</td>
+<td id="T_c6f8a_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Lapsed 6+ yrs</td>
+<td id="T_c6f8a_row3_col0" class="data row3 col0">305,138</td>
+<td id="T_c6f8a_row3_col1" class="data row3 col1">1.4%</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<div id="25308847" class="cell" data-execution_count="31">
+<div id="439bf615" class="cell" data-execution_count="31">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="dv">4</span>))</span>
@@ -5892,7 +5892,7 @@ Spearman corr, titles viewed vs FY t giving (active viewers): 0.01</code></pre>
 </div>
 </div>
 </div>
-<div id="d04c7f71" class="cell" data-execution_count="32">
+<div id="270bc86b" class="cell" data-execution_count="32">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># conversion by viewing, holding giving level fixed (the fair comparison)</span></span>
@@ -5904,14 +5904,14 @@ Spearman corr, titles viewed vs FY t giving (active viewers): 0.01</code></pre>
 <style type="text/css">
 </style>
 
-<table id="T_2637b" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_b0b2b" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_2637b_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">No record: donor-years</th>
-<th id="T_2637b_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Viewed: donor-years</th>
-<th id="T_2637b_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">No record: conversion</th>
-<th id="T_2637b_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">Viewed: conversion</th>
+<th id="T_b0b2b_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">No record: donor-years</th>
+<th id="T_b0b2b_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Viewed: donor-years</th>
+<th id="T_b0b2b_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">No record: conversion</th>
+<th id="T_b0b2b_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">Viewed: conversion</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">giving_band</th>
@@ -5923,52 +5923,52 @@ Spearman corr, titles viewed vs FY t giving (active viewers): 0.01</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_2637b_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">$0 (lapsed)</td>
-<td id="T_2637b_row0_col0" class="data row0 col0">456,618</td>
-<td id="T_2637b_row0_col1" class="data row0 col1">15,329</td>
-<td id="T_2637b_row0_col2" class="data row0 col2">0.00%</td>
-<td id="T_2637b_row0_col3" class="data row0 col3">0.01%</td>
+<td id="T_b0b2b_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">$0 (lapsed)</td>
+<td id="T_b0b2b_row0_col0" class="data row0 col0">456,618</td>
+<td id="T_b0b2b_row0_col1" class="data row0 col1">15,329</td>
+<td id="T_b0b2b_row0_col2" class="data row0 col2">0.00%</td>
+<td id="T_b0b2b_row0_col3" class="data row0 col3">0.01%</td>
 </tr>
 <tr class="even">
-<td id="T_2637b_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">$1-50</td>
-<td id="T_2637b_row1_col0" class="data row1 col0">21,782</td>
-<td id="T_2637b_row1_col1" class="data row1 col1">23,321</td>
-<td id="T_2637b_row1_col2" class="data row1 col2">0.03%</td>
-<td id="T_2637b_row1_col3" class="data row1 col3">0.03%</td>
+<td id="T_b0b2b_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">$1-50</td>
+<td id="T_b0b2b_row1_col0" class="data row1 col0">21,782</td>
+<td id="T_b0b2b_row1_col1" class="data row1 col1">23,321</td>
+<td id="T_b0b2b_row1_col2" class="data row1 col2">0.03%</td>
+<td id="T_b0b2b_row1_col3" class="data row1 col3">0.03%</td>
 </tr>
 <tr class="odd">
-<td id="T_2637b_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">$51-100</td>
-<td id="T_2637b_row2_col0" class="data row2 col0">32,569</td>
-<td id="T_2637b_row2_col1" class="data row2 col1">34,790</td>
-<td id="T_2637b_row2_col2" class="data row2 col2">0.01%</td>
-<td id="T_2637b_row2_col3" class="data row2 col3">0.03%</td>
+<td id="T_b0b2b_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">$51-100</td>
+<td id="T_b0b2b_row2_col0" class="data row2 col0">32,569</td>
+<td id="T_b0b2b_row2_col1" class="data row2 col1">34,790</td>
+<td id="T_b0b2b_row2_col2" class="data row2 col2">0.01%</td>
+<td id="T_b0b2b_row2_col3" class="data row2 col3">0.03%</td>
 </tr>
 <tr class="even">
-<td id="T_2637b_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">$101-250</td>
-<td id="T_2637b_row3_col0" class="data row3 col0">23,839</td>
-<td id="T_2637b_row3_col1" class="data row3 col1">22,142</td>
-<td id="T_2637b_row3_col2" class="data row3 col2">0.16%</td>
-<td id="T_2637b_row3_col3" class="data row3 col3">0.10%</td>
+<td id="T_b0b2b_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">$101-250</td>
+<td id="T_b0b2b_row3_col0" class="data row3 col0">23,839</td>
+<td id="T_b0b2b_row3_col1" class="data row3 col1">22,142</td>
+<td id="T_b0b2b_row3_col2" class="data row3 col2">0.16%</td>
+<td id="T_b0b2b_row3_col3" class="data row3 col3">0.10%</td>
 </tr>
 <tr class="odd">
-<td id="T_2637b_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">$251-599</td>
-<td id="T_2637b_row4_col0" class="data row4 col0">815</td>
-<td id="T_2637b_row4_col1" class="data row4 col1">334</td>
-<td id="T_2637b_row4_col2" class="data row4 col2">0.61%</td>
-<td id="T_2637b_row4_col3" class="data row4 col3">1.20%</td>
+<td id="T_b0b2b_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">$251-599</td>
+<td id="T_b0b2b_row4_col0" class="data row4 col0">815</td>
+<td id="T_b0b2b_row4_col1" class="data row4 col1">334</td>
+<td id="T_b0b2b_row4_col2" class="data row4 col2">0.61%</td>
+<td id="T_b0b2b_row4_col3" class="data row4 col3">1.20%</td>
 </tr>
 <tr class="even">
-<td id="T_2637b_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">$600-1,199</td>
-<td id="T_2637b_row5_col0" class="data row5 col0">921</td>
-<td id="T_2637b_row5_col1" class="data row5 col1">406</td>
-<td id="T_2637b_row5_col2" class="data row5 col2">13.14%</td>
-<td id="T_2637b_row5_col3" class="data row5 col3">12.32%</td>
+<td id="T_b0b2b_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">$600-1,199</td>
+<td id="T_b0b2b_row5_col0" class="data row5 col0">921</td>
+<td id="T_b0b2b_row5_col1" class="data row5 col1">406</td>
+<td id="T_b0b2b_row5_col2" class="data row5 col2">13.14%</td>
+<td id="T_b0b2b_row5_col3" class="data row5 col3">12.32%</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<div id="97fa584d" class="cell" data-execution_count="33">
+<div id="f1e1e3e0" class="cell" data-execution_count="33">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># among active donors only: is viewing still associated with conversion?</span></span>
@@ -5995,15 +5995,15 @@ no record          79926         175 0.219%
 <style type="text/css">
 </style>
 
-<table id="T_77fdc" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_697c9" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank" data-quarto-table-cell-role="th"> </th>
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_77fdc_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
-<th id="T_77fdc_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">reactivated</th>
-<th id="T_77fdc_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">converted</th>
-<th id="T_77fdc_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">conv_rate</th>
+<th id="T_697c9_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">donor_years</th>
+<th id="T_697c9_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">reactivated</th>
+<th id="T_697c9_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">converted</th>
+<th id="T_697c9_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">conv_rate</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">status</th>
@@ -6016,49 +6016,49 @@ no record          79926         175 0.219%
 </thead>
 <tbody>
 <tr class="odd">
-<td rowspan="2" id="T_77fdc_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Lapsed 1-2 yrs</td>
-<td id="T_77fdc_level1_row0" class="row_heading level1 row0" data-quarto-table-cell-role="th">No record</td>
-<td id="T_77fdc_row0_col0" class="data row0 col0">61,673</td>
-<td id="T_77fdc_row0_col1" class="data row0 col1">3.0%</td>
-<td id="T_77fdc_row0_col2" class="data row0 col2">7</td>
-<td id="T_77fdc_row0_col3" class="data row0 col3">0.011%</td>
+<td rowspan="2" id="T_697c9_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Lapsed 1-2 yrs</td>
+<td id="T_697c9_level1_row0" class="row_heading level1 row0" data-quarto-table-cell-role="th">No record</td>
+<td id="T_697c9_row0_col0" class="data row0 col0">61,673</td>
+<td id="T_697c9_row0_col1" class="data row0 col1">3.0%</td>
+<td id="T_697c9_row0_col2" class="data row0 col2">7</td>
+<td id="T_697c9_row0_col3" class="data row0 col3">0.011%</td>
 </tr>
 <tr class="even">
-<td id="T_77fdc_level1_row1" class="row_heading level1 row1" data-quarto-table-cell-role="th">Viewed</td>
-<td id="T_77fdc_row1_col0" class="data row1 col0">9,508</td>
-<td id="T_77fdc_row1_col1" class="data row1 col1">2.9%</td>
-<td id="T_77fdc_row1_col2" class="data row1 col2">2</td>
-<td id="T_77fdc_row1_col3" class="data row1 col3">0.021%</td>
+<td id="T_697c9_level1_row1" class="row_heading level1 row1" data-quarto-table-cell-role="th">Viewed</td>
+<td id="T_697c9_row1_col0" class="data row1 col0">9,508</td>
+<td id="T_697c9_row1_col1" class="data row1 col1">2.9%</td>
+<td id="T_697c9_row1_col2" class="data row1 col2">2</td>
+<td id="T_697c9_row1_col3" class="data row1 col3">0.021%</td>
 </tr>
 <tr class="odd">
-<td rowspan="2" id="T_77fdc_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Lapsed 3-5 yrs</td>
-<td id="T_77fdc_level1_row2" class="row_heading level1 row2" data-quarto-table-cell-role="th">No record</td>
-<td id="T_77fdc_row2_col0" class="data row2 col0">94,220</td>
-<td id="T_77fdc_row2_col1" class="data row2 col1">3.2%</td>
-<td id="T_77fdc_row2_col2" class="data row2 col2">6</td>
-<td id="T_77fdc_row2_col3" class="data row2 col3">0.006%</td>
+<td rowspan="2" id="T_697c9_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Lapsed 3-5 yrs</td>
+<td id="T_697c9_level1_row2" class="row_heading level1 row2" data-quarto-table-cell-role="th">No record</td>
+<td id="T_697c9_row2_col0" class="data row2 col0">94,220</td>
+<td id="T_697c9_row2_col1" class="data row2 col1">3.2%</td>
+<td id="T_697c9_row2_col2" class="data row2 col2">6</td>
+<td id="T_697c9_row2_col3" class="data row2 col3">0.006%</td>
 </tr>
 <tr class="even">
-<td id="T_77fdc_level1_row3" class="row_heading level1 row3" data-quarto-table-cell-role="th">Viewed</td>
-<td id="T_77fdc_row3_col0" class="data row3 col0">1,408</td>
-<td id="T_77fdc_row3_col1" class="data row3 col1">3.6%</td>
-<td id="T_77fdc_row3_col2" class="data row3 col2">0</td>
-<td id="T_77fdc_row3_col3" class="data row3 col3">0.000%</td>
+<td id="T_697c9_level1_row3" class="row_heading level1 row3" data-quarto-table-cell-role="th">Viewed</td>
+<td id="T_697c9_row3_col0" class="data row3 col0">1,408</td>
+<td id="T_697c9_row3_col1" class="data row3 col1">3.6%</td>
+<td id="T_697c9_row3_col2" class="data row3 col2">0</td>
+<td id="T_697c9_row3_col3" class="data row3 col3">0.000%</td>
 </tr>
 <tr class="odd">
-<td rowspan="2" id="T_77fdc_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">Lapsed 6+ yrs</td>
-<td id="T_77fdc_level1_row4" class="row_heading level1 row4" data-quarto-table-cell-role="th">No record</td>
-<td id="T_77fdc_row4_col0" class="data row4 col0">300,725</td>
-<td id="T_77fdc_row4_col1" class="data row4 col1">3.2%</td>
-<td id="T_77fdc_row4_col2" class="data row4 col2">9</td>
-<td id="T_77fdc_row4_col3" class="data row4 col3">0.003%</td>
+<td rowspan="2" id="T_697c9_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">Lapsed 6+ yrs</td>
+<td id="T_697c9_level1_row4" class="row_heading level1 row4" data-quarto-table-cell-role="th">No record</td>
+<td id="T_697c9_row4_col0" class="data row4 col0">300,725</td>
+<td id="T_697c9_row4_col1" class="data row4 col1">3.2%</td>
+<td id="T_697c9_row4_col2" class="data row4 col2">9</td>
+<td id="T_697c9_row4_col3" class="data row4 col3">0.003%</td>
 </tr>
 <tr class="even">
-<td id="T_77fdc_level1_row5" class="row_heading level1 row5" data-quarto-table-cell-role="th">Viewed</td>
-<td id="T_77fdc_row5_col0" class="data row5 col0">4,413</td>
-<td id="T_77fdc_row5_col1" class="data row5 col1">3.1%</td>
-<td id="T_77fdc_row5_col2" class="data row5 col2">0</td>
-<td id="T_77fdc_row5_col3" class="data row5 col3">0.000%</td>
+<td id="T_697c9_level1_row5" class="row_heading level1 row5" data-quarto-table-cell-role="th">Viewed</td>
+<td id="T_697c9_row5_col0" class="data row5 col0">4,413</td>
+<td id="T_697c9_row5_col1" class="data row5 col1">3.1%</td>
+<td id="T_697c9_row5_col2" class="data row5 col2">0</td>
+<td id="T_697c9_row5_col3" class="data row5 col3">0.000%</td>
 </tr>
 </tbody>
 </table>
@@ -6076,7 +6076,7 @@ no record          79926         175 0.219%
 <section id="the-cultivation-program" class="level2">
 <h2 class="anchored" data-anchor-id="the-cultivation-program">11. The cultivation program</h2>
 <p>Each year from FY2022 to FY2025, eight officer portfolios each <strong>selected</strong> 125 donors (1,000 per year). Within each portfolio, about a quarter of selected donors were <strong>randomly held out</strong> from contact. Portfolios <strong>adopted</strong> the cultivation program in a staggered rollout (FY2023–FY2026, one never). The random holdout makes contacted vs. holdout a fair comparison.</p>
-<div id="03bd9193" class="cell" data-execution_count="34">
+<div id="4851d77d" class="cell" data-execution_count="34">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(portfolios.astype({<span class="st">&quot;rollout_fy&quot;</span>: <span class="st">&quot;Int64&quot;</span>}).to_string(index<span class="op">=</span><span class="va">False</span>))</span>
@@ -6174,7 +6174,7 @@ no record          79926         175 0.219%
 </div>
 </div>
 </div>
-<div id="44caa6d7" class="cell" data-execution_count="35">
+<div id="cea12906" class="cell" data-execution_count="35">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> amt(donor, year):</span>
@@ -6225,17 +6225,17 @@ Selected donors who were already major in the prior year: 3.0%
 <style type="text/css">
 </style>
 
-<table id="T_b8180" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_894bd" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank" data-quarto-table-cell-role="th"> </th>
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_b8180_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">n</th>
-<th id="T_b8180_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">converted</th>
-<th id="T_b8180_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">conv_rate</th>
-<th id="T_b8180_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">conv_se</th>
-<th id="T_b8180_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">change</th>
-<th id="T_b8180_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">change_se</th>
+<th id="T_894bd_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">n</th>
+<th id="T_894bd_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">converted</th>
+<th id="T_894bd_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">conv_rate</th>
+<th id="T_894bd_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">conv_se</th>
+<th id="T_894bd_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">change</th>
+<th id="T_894bd_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">change_se</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">program</th>
@@ -6250,48 +6250,48 @@ Selected donors who were already major in the prior year: 3.0%
 </thead>
 <tbody>
 <tr class="odd">
-<td rowspan="2" id="T_b8180_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">After adoption</td>
-<td id="T_b8180_level1_row0" class="row_heading level1 row0" data-quarto-table-cell-role="th">Contacted</td>
-<td id="T_b8180_row0_col0" class="data row0 col0">1,087</td>
-<td id="T_b8180_row0_col1" class="data row0 col1">60</td>
-<td id="T_b8180_row0_col2" class="data row0 col2">5.52%</td>
-<td id="T_b8180_row0_col3" class="data row0 col3">0.69%</td>
-<td id="T_b8180_row0_col4" class="data row0 col4">$71.3</td>
-<td id="T_b8180_row0_col5" class="data row0 col5">$10.2</td>
+<td rowspan="2" id="T_894bd_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">After adoption</td>
+<td id="T_894bd_level1_row0" class="row_heading level1 row0" data-quarto-table-cell-role="th">Contacted</td>
+<td id="T_894bd_row0_col0" class="data row0 col0">1,087</td>
+<td id="T_894bd_row0_col1" class="data row0 col1">60</td>
+<td id="T_894bd_row0_col2" class="data row0 col2">5.52%</td>
+<td id="T_894bd_row0_col3" class="data row0 col3">0.69%</td>
+<td id="T_894bd_row0_col4" class="data row0 col4">$71.3</td>
+<td id="T_894bd_row0_col5" class="data row0 col5">$10.2</td>
 </tr>
 <tr class="even">
-<td id="T_b8180_level1_row1" class="row_heading level1 row1" data-quarto-table-cell-role="th">Holdout</td>
-<td id="T_b8180_row1_col0" class="data row1 col0">363</td>
-<td id="T_b8180_row1_col1" class="data row1 col1">7</td>
-<td id="T_b8180_row1_col2" class="data row1 col2">1.93%</td>
-<td id="T_b8180_row1_col3" class="data row1 col3">0.72%</td>
-<td id="T_b8180_row1_col4" class="data row1 col4">$12.0</td>
-<td id="T_b8180_row1_col5" class="data row1 col5">$12.1</td>
+<td id="T_894bd_level1_row1" class="row_heading level1 row1" data-quarto-table-cell-role="th">Holdout</td>
+<td id="T_894bd_row1_col0" class="data row1 col0">363</td>
+<td id="T_894bd_row1_col1" class="data row1 col1">7</td>
+<td id="T_894bd_row1_col2" class="data row1 col2">1.93%</td>
+<td id="T_894bd_row1_col3" class="data row1 col3">0.72%</td>
+<td id="T_894bd_row1_col4" class="data row1 col4">$12.0</td>
+<td id="T_894bd_row1_col5" class="data row1 col5">$12.1</td>
 </tr>
 <tr class="odd">
-<td rowspan="2" id="T_b8180_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Before adoption</td>
-<td id="T_b8180_level1_row2" class="row_heading level1 row2" data-quarto-table-cell-role="th">Contacted</td>
-<td id="T_b8180_row2_col0" class="data row2 col0">1,830</td>
-<td id="T_b8180_row2_col1" class="data row2 col1">46</td>
-<td id="T_b8180_row2_col2" class="data row2 col2">2.51%</td>
-<td id="T_b8180_row2_col3" class="data row2 col3">0.37%</td>
-<td id="T_b8180_row2_col4" class="data row2 col4">$18.2</td>
-<td id="T_b8180_row2_col5" class="data row2 col5">$6.2</td>
+<td rowspan="2" id="T_894bd_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">Before adoption</td>
+<td id="T_894bd_level1_row2" class="row_heading level1 row2" data-quarto-table-cell-role="th">Contacted</td>
+<td id="T_894bd_row2_col0" class="data row2 col0">1,830</td>
+<td id="T_894bd_row2_col1" class="data row2 col1">46</td>
+<td id="T_894bd_row2_col2" class="data row2 col2">2.51%</td>
+<td id="T_894bd_row2_col3" class="data row2 col3">0.37%</td>
+<td id="T_894bd_row2_col4" class="data row2 col4">$18.2</td>
+<td id="T_894bd_row2_col5" class="data row2 col5">$6.2</td>
 </tr>
 <tr class="even">
-<td id="T_b8180_level1_row3" class="row_heading level1 row3" data-quarto-table-cell-role="th">Holdout</td>
-<td id="T_b8180_row3_col0" class="data row3 col0">601</td>
-<td id="T_b8180_row3_col1" class="data row3 col1">10</td>
-<td id="T_b8180_row3_col2" class="data row3 col2">1.66%</td>
-<td id="T_b8180_row3_col3" class="data row3 col3">0.52%</td>
-<td id="T_b8180_row3_col4" class="data row3 col4">$10.7</td>
-<td id="T_b8180_row3_col5" class="data row3 col5">$9.8</td>
+<td id="T_894bd_level1_row3" class="row_heading level1 row3" data-quarto-table-cell-role="th">Holdout</td>
+<td id="T_894bd_row3_col0" class="data row3 col0">601</td>
+<td id="T_894bd_row3_col1" class="data row3 col1">10</td>
+<td id="T_894bd_row3_col2" class="data row3 col2">1.66%</td>
+<td id="T_894bd_row3_col3" class="data row3 col3">0.52%</td>
+<td id="T_894bd_row3_col4" class="data row3 col4">$10.7</td>
+<td id="T_894bd_row3_col5" class="data row3 col5">$9.8</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<div id="b4053700" class="cell" data-execution_count="36">
+<div id="9bf5dcca" class="cell" data-execution_count="36">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">13</span>, <span class="dv">4</span>))</span>
@@ -6324,14 +6324,14 @@ Selected donors who were already major in the prior year: 3.0%
 <style type="text/css">
 </style>
 
-<table id="T_9c010" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_5aaf4" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_9c010_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">conversion difference</th>
-<th id="T_9c010_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">conv. std. error</th>
-<th id="T_9c010_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">$ change difference (capped)</th>
-<th id="T_9c010_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">$ std. error</th>
+<th id="T_5aaf4_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">conversion difference</th>
+<th id="T_5aaf4_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">conv. std. error</th>
+<th id="T_5aaf4_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">$ change difference (capped)</th>
+<th id="T_5aaf4_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">$ std. error</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">program</th>
@@ -6343,18 +6343,18 @@ Selected donors who were already major in the prior year: 3.0%
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_9c010_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">After adoption</td>
-<td id="T_9c010_row0_col0" class="data row0 col0">+3.59%</td>
-<td id="T_9c010_row0_col1" class="data row0 col1">1.00%</td>
-<td id="T_9c010_row0_col2" class="data row0 col2">$+59.2</td>
-<td id="T_9c010_row0_col3" class="data row0 col3">$15.8</td>
+<td id="T_5aaf4_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">After adoption</td>
+<td id="T_5aaf4_row0_col0" class="data row0 col0">+3.59%</td>
+<td id="T_5aaf4_row0_col1" class="data row0 col1">1.00%</td>
+<td id="T_5aaf4_row0_col2" class="data row0 col2">$+59.2</td>
+<td id="T_5aaf4_row0_col3" class="data row0 col3">$15.8</td>
 </tr>
 <tr class="even">
-<td id="T_9c010_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Before adoption</td>
-<td id="T_9c010_row1_col0" class="data row1 col0">+0.85%</td>
-<td id="T_9c010_row1_col1" class="data row1 col1">0.64%</td>
-<td id="T_9c010_row1_col2" class="data row1 col2">$+7.5</td>
-<td id="T_9c010_row1_col3" class="data row1 col3">$11.6</td>
+<td id="T_5aaf4_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">Before adoption</td>
+<td id="T_5aaf4_row1_col0" class="data row1 col0">+0.85%</td>
+<td id="T_5aaf4_row1_col1" class="data row1 col1">0.64%</td>
+<td id="T_5aaf4_row1_col2" class="data row1 col2">$+7.5</td>
+<td id="T_5aaf4_row1_col3" class="data row1 col3">$11.6</td>
 </tr>
 </tbody>
 </table>
@@ -6367,7 +6367,7 @@ Selected donors who were already major in the prior year: 3.0%
 </div>
 </div>
 </div>
-<div id="bb463c1a" class="cell" data-execution_count="37">
+<div id="ad5e4933" class="cell" data-execution_count="37">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co"># how many future major donors had been selected for cultivation the year before?</span></span>
@@ -6391,7 +6391,7 @@ Selected donors who were already major in the prior year: 3.0%
 <li><strong>Precision@1,000:</strong> share of the top 1,000 who convert</li>
 <li><strong>Lift@1,000:</strong> precision divided by the overall conversion rate</li>
 </ul>
-<div id="4fe318af" class="cell" data-execution_count="38">
+<div id="28af3a6e" class="cell" data-execution_count="38">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">6813</span>)</span>
@@ -6429,14 +6429,14 @@ Selected donors who were already major in the prior year: 3.0%
 <style type="text/css">
 </style>
 
-<table id="T_fc0fd" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_614fc" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank" data-quarto-table-cell-role="th"> </th>
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_fc0fd_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">recall</th>
-<th id="T_fc0fd_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">precision</th>
-<th id="T_fc0fd_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">lift</th>
+<th id="T_614fc_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">recall</th>
+<th id="T_614fc_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">precision</th>
+<th id="T_614fc_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">lift</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">population</th>
@@ -6448,121 +6448,121 @@ Selected donors who were already major in the prior year: 3.0%
 </thead>
 <tbody>
 <tr class="odd">
-<td rowspan="6" id="T_fc0fd_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Active only</td>
-<td id="T_fc0fd_level1_row0" class="row_heading level1 row0" data-quarto-table-cell-role="th">Random list</td>
-<td id="T_fc0fd_row0_col0" class="data row0 col0">6%</td>
-<td id="T_fc0fd_row0_col1" class="data row0 col1">0.3%</td>
-<td id="T_fc0fd_row0_col2" class="data row0 col2">1.8x</td>
+<td rowspan="6" id="T_614fc_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">Active only</td>
+<td id="T_614fc_level1_row0" class="row_heading level1 row0" data-quarto-table-cell-role="th">Random list</td>
+<td id="T_614fc_row0_col0" class="data row0 col0">6%</td>
+<td id="T_614fc_row0_col1" class="data row0 col1">0.3%</td>
+<td id="T_614fc_row0_col2" class="data row0 col2">1.8x</td>
 </tr>
 <tr class="even">
-<td id="T_fc0fd_level1_row1" class="row_heading level1 row1" data-quarto-table-cell-role="th">Most recent giving year&#39;s amount</td>
-<td id="T_fc0fd_row1_col0" class="data row1 col0">74%</td>
-<td id="T_fc0fd_row1_col1" class="data row1 col1">4.0%</td>
-<td id="T_fc0fd_row1_col2" class="data row1 col2">24.0x</td>
+<td id="T_614fc_level1_row1" class="row_heading level1 row1" data-quarto-table-cell-role="th">Most recent giving year&#39;s amount</td>
+<td id="T_614fc_row1_col0" class="data row1 col0">74%</td>
+<td id="T_614fc_row1_col1" class="data row1 col1">4.0%</td>
+<td id="T_614fc_row1_col2" class="data row1 col2">24.0x</td>
 </tr>
 <tr class="odd">
-<td id="T_fc0fd_level1_row2" class="row_heading level1 row2" data-quarto-table-cell-role="th">RFV-style (frequency + value ranks)</td>
-<td id="T_fc0fd_row2_col0" class="data row2 col0">68%</td>
-<td id="T_fc0fd_row2_col1" class="data row2 col1">3.6%</td>
-<td id="T_fc0fd_row2_col2" class="data row2 col2">21.9x</td>
+<td id="T_614fc_level1_row2" class="row_heading level1 row2" data-quarto-table-cell-role="th">RFV-style (frequency + value ranks)</td>
+<td id="T_614fc_row2_col0" class="data row2 col0">68%</td>
+<td id="T_614fc_row2_col1" class="data row2 col1">3.6%</td>
+<td id="T_614fc_row2_col2" class="data row2 col2">21.9x</td>
 </tr>
 <tr class="even">
-<td id="T_fc0fd_level1_row3" class="row_heading level1 row3" data-quarto-table-cell-role="th">Max single gift in FY t</td>
-<td id="T_fc0fd_row3_col0" class="data row3 col0">75%</td>
-<td id="T_fc0fd_row3_col1" class="data row3 col1">4.0%</td>
-<td id="T_fc0fd_row3_col2" class="data row3 col2">24.1x</td>
+<td id="T_614fc_level1_row3" class="row_heading level1 row3" data-quarto-table-cell-role="th">Max single gift in FY t</td>
+<td id="T_614fc_row3_col0" class="data row3 col0">75%</td>
+<td id="T_614fc_row3_col1" class="data row3 col1">4.0%</td>
+<td id="T_614fc_row3_col2" class="data row3 col2">24.1x</td>
 </tr>
 <tr class="odd">
-<td id="T_fc0fd_level1_row4" class="row_heading level1 row4" data-quarto-table-cell-role="th">3-year total giving</td>
-<td id="T_fc0fd_row4_col0" class="data row4 col0">74%</td>
-<td id="T_fc0fd_row4_col1" class="data row4 col1">4.0%</td>
-<td id="T_fc0fd_row4_col2" class="data row4 col2">23.7x</td>
+<td id="T_614fc_level1_row4" class="row_heading level1 row4" data-quarto-table-cell-role="th">3-year total giving</td>
+<td id="T_614fc_row4_col0" class="data row4 col0">74%</td>
+<td id="T_614fc_row4_col1" class="data row4 col1">4.0%</td>
+<td id="T_614fc_row4_col2" class="data row4 col2">23.7x</td>
 </tr>
 <tr class="even">
-<td id="T_fc0fd_level1_row5" class="row_heading level1 row5" data-quarto-table-cell-role="th">Prior-year (FY t) giving</td>
-<td id="T_fc0fd_row5_col0" class="data row5 col0">74%</td>
-<td id="T_fc0fd_row5_col1" class="data row5 col1">4.0%</td>
-<td id="T_fc0fd_row5_col2" class="data row5 col2">24.0x</td>
+<td id="T_614fc_level1_row5" class="row_heading level1 row5" data-quarto-table-cell-role="th">Prior-year (FY t) giving</td>
+<td id="T_614fc_row5_col0" class="data row5 col0">74%</td>
+<td id="T_614fc_row5_col1" class="data row5 col1">4.0%</td>
+<td id="T_614fc_row5_col2" class="data row5 col2">24.0x</td>
 </tr>
 <tr class="odd">
-<td rowspan="6" id="T_fc0fd_level0_row6" class="row_heading level0 row6" data-quarto-table-cell-role="th">All eligible</td>
-<td id="T_fc0fd_level1_row6" class="row_heading level1 row6" data-quarto-table-cell-role="th">Random list</td>
-<td id="T_fc0fd_row6_col0" class="data row6 col0">2%</td>
-<td id="T_fc0fd_row6_col1" class="data row6 col1">0.1%</td>
-<td id="T_fc0fd_row6_col2" class="data row6 col2">2.4x</td>
+<td rowspan="6" id="T_614fc_level0_row6" class="row_heading level0 row6" data-quarto-table-cell-role="th">All eligible</td>
+<td id="T_614fc_level1_row6" class="row_heading level1 row6" data-quarto-table-cell-role="th">Random list</td>
+<td id="T_614fc_row6_col0" class="data row6 col0">2%</td>
+<td id="T_614fc_row6_col1" class="data row6 col1">0.1%</td>
+<td id="T_614fc_row6_col2" class="data row6 col2">2.4x</td>
 </tr>
 <tr class="even">
-<td id="T_fc0fd_level1_row7" class="row_heading level1 row7" data-quarto-table-cell-role="th">Most recent giving year&#39;s amount</td>
-<td id="T_fc0fd_row7_col0" class="data row7 col0">62%</td>
-<td id="T_fc0fd_row7_col1" class="data row7 col1">3.6%</td>
-<td id="T_fc0fd_row7_col2" class="data row7 col2">78.6x</td>
+<td id="T_614fc_level1_row7" class="row_heading level1 row7" data-quarto-table-cell-role="th">Most recent giving year&#39;s amount</td>
+<td id="T_614fc_row7_col0" class="data row7 col0">62%</td>
+<td id="T_614fc_row7_col1" class="data row7 col1">3.6%</td>
+<td id="T_614fc_row7_col2" class="data row7 col2">78.6x</td>
 </tr>
 <tr class="odd">
-<td id="T_fc0fd_level1_row8" class="row_heading level1 row8" data-quarto-table-cell-role="th">RFV-style (frequency + value ranks)</td>
-<td id="T_fc0fd_row8_col0" class="data row8 col0">62%</td>
-<td id="T_fc0fd_row8_col1" class="data row8 col1">3.6%</td>
-<td id="T_fc0fd_row8_col2" class="data row8 col2">78.8x</td>
+<td id="T_614fc_level1_row8" class="row_heading level1 row8" data-quarto-table-cell-role="th">RFV-style (frequency + value ranks)</td>
+<td id="T_614fc_row8_col0" class="data row8 col0">62%</td>
+<td id="T_614fc_row8_col1" class="data row8 col1">3.6%</td>
+<td id="T_614fc_row8_col2" class="data row8 col2">78.8x</td>
 </tr>
 <tr class="even">
-<td id="T_fc0fd_level1_row9" class="row_heading level1 row9" data-quarto-table-cell-role="th">Max single gift in FY t</td>
-<td id="T_fc0fd_row9_col0" class="data row9 col0">69%</td>
-<td id="T_fc0fd_row9_col1" class="data row9 col1">4.0%</td>
-<td id="T_fc0fd_row9_col2" class="data row9 col2">86.9x</td>
+<td id="T_614fc_level1_row9" class="row_heading level1 row9" data-quarto-table-cell-role="th">Max single gift in FY t</td>
+<td id="T_614fc_row9_col0" class="data row9 col0">69%</td>
+<td id="T_614fc_row9_col1" class="data row9 col1">4.0%</td>
+<td id="T_614fc_row9_col2" class="data row9 col2">86.9x</td>
 </tr>
 <tr class="odd">
-<td id="T_fc0fd_level1_row10" class="row_heading level1 row10" data-quarto-table-cell-role="th">3-year total giving</td>
-<td id="T_fc0fd_row10_col0" class="data row10 col0">69%</td>
-<td id="T_fc0fd_row10_col1" class="data row10 col1">4.1%</td>
-<td id="T_fc0fd_row10_col2" class="data row10 col2">87.6x</td>
+<td id="T_614fc_level1_row10" class="row_heading level1 row10" data-quarto-table-cell-role="th">3-year total giving</td>
+<td id="T_614fc_row10_col0" class="data row10 col0">69%</td>
+<td id="T_614fc_row10_col1" class="data row10 col1">4.1%</td>
+<td id="T_614fc_row10_col2" class="data row10 col2">87.6x</td>
 </tr>
 <tr class="even">
-<td id="T_fc0fd_level1_row11" class="row_heading level1 row11" data-quarto-table-cell-role="th">Prior-year (FY t) giving</td>
-<td id="T_fc0fd_row11_col0" class="data row11 col0">68%</td>
-<td id="T_fc0fd_row11_col1" class="data row11 col1">4.0%</td>
-<td id="T_fc0fd_row11_col2" class="data row11 col2">86.4x</td>
+<td id="T_614fc_level1_row11" class="row_heading level1 row11" data-quarto-table-cell-role="th">Prior-year (FY t) giving</td>
+<td id="T_614fc_row11_col0" class="data row11 col0">68%</td>
+<td id="T_614fc_row11_col1" class="data row11 col1">4.0%</td>
+<td id="T_614fc_row11_col2" class="data row11 col2">86.4x</td>
 </tr>
 <tr class="odd">
-<td rowspan="6" id="T_fc0fd_level0_row12" class="row_heading level0 row12" data-quarto-table-cell-role="th">Never-major only</td>
-<td id="T_fc0fd_level1_row12" class="row_heading level1 row12" data-quarto-table-cell-role="th">Random list</td>
-<td id="T_fc0fd_row12_col0" class="data row12 col0">3%</td>
-<td id="T_fc0fd_row12_col1" class="data row12 col1">0.1%</td>
-<td id="T_fc0fd_row12_col2" class="data row12 col2">3.8x</td>
+<td rowspan="6" id="T_614fc_level0_row12" class="row_heading level0 row12" data-quarto-table-cell-role="th">Never-major only</td>
+<td id="T_614fc_level1_row12" class="row_heading level1 row12" data-quarto-table-cell-role="th">Random list</td>
+<td id="T_614fc_row12_col0" class="data row12 col0">3%</td>
+<td id="T_614fc_row12_col1" class="data row12 col1">0.1%</td>
+<td id="T_614fc_row12_col2" class="data row12 col2">3.8x</td>
 </tr>
 <tr class="even">
-<td id="T_fc0fd_level1_row13" class="row_heading level1 row13" data-quarto-table-cell-role="th">Most recent giving year&#39;s amount</td>
-<td id="T_fc0fd_row13_col0" class="data row13 col0">41%</td>
-<td id="T_fc0fd_row13_col1" class="data row13 col1">1.2%</td>
-<td id="T_fc0fd_row13_col2" class="data row13 col2">51.3x</td>
+<td id="T_614fc_level1_row13" class="row_heading level1 row13" data-quarto-table-cell-role="th">Most recent giving year&#39;s amount</td>
+<td id="T_614fc_row13_col0" class="data row13 col0">41%</td>
+<td id="T_614fc_row13_col1" class="data row13 col1">1.2%</td>
+<td id="T_614fc_row13_col2" class="data row13 col2">51.3x</td>
 </tr>
 <tr class="odd">
-<td id="T_fc0fd_level1_row14" class="row_heading level1 row14" data-quarto-table-cell-role="th">RFV-style (frequency + value ranks)</td>
-<td id="T_fc0fd_row14_col0" class="data row14 col0">38%</td>
-<td id="T_fc0fd_row14_col1" class="data row14 col1">1.1%</td>
-<td id="T_fc0fd_row14_col2" class="data row14 col2">48.8x</td>
+<td id="T_614fc_level1_row14" class="row_heading level1 row14" data-quarto-table-cell-role="th">RFV-style (frequency + value ranks)</td>
+<td id="T_614fc_row14_col0" class="data row14 col0">38%</td>
+<td id="T_614fc_row14_col1" class="data row14 col1">1.1%</td>
+<td id="T_614fc_row14_col2" class="data row14 col2">48.8x</td>
 </tr>
 <tr class="even">
-<td id="T_fc0fd_level1_row15" class="row_heading level1 row15" data-quarto-table-cell-role="th">Max single gift in FY t</td>
-<td id="T_fc0fd_row15_col0" class="data row15 col0">54%</td>
-<td id="T_fc0fd_row15_col1" class="data row15 col1">1.6%</td>
-<td id="T_fc0fd_row15_col2" class="data row15 col2">67.4x</td>
+<td id="T_614fc_level1_row15" class="row_heading level1 row15" data-quarto-table-cell-role="th">Max single gift in FY t</td>
+<td id="T_614fc_row15_col0" class="data row15 col0">54%</td>
+<td id="T_614fc_row15_col1" class="data row15 col1">1.6%</td>
+<td id="T_614fc_row15_col2" class="data row15 col2">67.4x</td>
 </tr>
 <tr class="odd">
-<td id="T_fc0fd_level1_row16" class="row_heading level1 row16" data-quarto-table-cell-role="th">3-year total giving</td>
-<td id="T_fc0fd_row16_col0" class="data row16 col0">42%</td>
-<td id="T_fc0fd_row16_col1" class="data row16 col1">1.2%</td>
-<td id="T_fc0fd_row16_col2" class="data row16 col2">53.4x</td>
+<td id="T_614fc_level1_row16" class="row_heading level1 row16" data-quarto-table-cell-role="th">3-year total giving</td>
+<td id="T_614fc_row16_col0" class="data row16 col0">42%</td>
+<td id="T_614fc_row16_col1" class="data row16 col1">1.2%</td>
+<td id="T_614fc_row16_col2" class="data row16 col2">53.4x</td>
 </tr>
 <tr class="even">
-<td id="T_fc0fd_level1_row17" class="row_heading level1 row17" data-quarto-table-cell-role="th">Prior-year (FY t) giving</td>
-<td id="T_fc0fd_row17_col0" class="data row17 col0">53%</td>
-<td id="T_fc0fd_row17_col1" class="data row17 col1">1.6%</td>
-<td id="T_fc0fd_row17_col2" class="data row17 col2">66.5x</td>
+<td id="T_614fc_level1_row17" class="row_heading level1 row17" data-quarto-table-cell-role="th">Prior-year (FY t) giving</td>
+<td id="T_614fc_row17_col0" class="data row17 col0">53%</td>
+<td id="T_614fc_row17_col1" class="data row17 col1">1.6%</td>
+<td id="T_614fc_row17_col2" class="data row17 col2">66.5x</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<div id="5b140edc" class="cell" data-execution_count="39">
+<div id="bbff81f8" class="cell" data-execution_count="39">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">4</span>))</span>
@@ -6591,7 +6591,7 @@ Selected donors who were already major in the prior year: 3.0%
 <section id="the-25-recall-target-at-the-top-10" class="level3">
 <h3 class="anchored" data-anchor-id="the-25-recall-target-at-the-top-10">The 25% recall target at the top 10%</h3>
 <p>The statement’s primary target is that at least 25% of non-major donors who later reach $1,200+ appear in the <strong>top 10%</strong> of the ranked list. The table below applies that test to the simple baselines from Section 12, for each outcome window, averaged over the available snapshot years.</p>
-<div id="b1a9babd" class="cell" data-execution_count="40">
+<div id="8e92480a" class="cell" data-execution_count="40">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> recall_top_share(df, score, target, share<span class="op">=</span><span class="fl">0.10</span>):</span>
@@ -6625,14 +6625,14 @@ Selected donors who were already major in the prior year: 3.0%
 <style type="text/css">
 </style>
 
-<table id="T_6e276" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_5c683" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank" data-quarto-table-cell-role="th"> </th>
 <th class="index_name level0" data-quarto-table-cell-role="th">window</th>
-<th id="T_6e276_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">12 months</th>
-<th id="T_6e276_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">within 3 years</th>
-<th id="T_6e276_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">within 5 years</th>
+<th id="T_5c683_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">12 months</th>
+<th id="T_5c683_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">within 3 years</th>
+<th id="T_5c683_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">within 5 years</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">population</th>
@@ -6644,42 +6644,42 @@ Selected donors who were already major in the prior year: 3.0%
 </thead>
 <tbody>
 <tr class="odd">
-<td rowspan="3" id="T_6e276_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">All eligible</td>
-<td id="T_6e276_level1_row0" class="row_heading level1 row0" data-quarto-table-cell-role="th">Random list</td>
-<td id="T_6e276_row0_col0" class="data row0 col0">11%</td>
-<td id="T_6e276_row0_col1" class="data row0 col1">10%</td>
-<td id="T_6e276_row0_col2" class="data row0 col2">7%</td>
+<td rowspan="3" id="T_5c683_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">All eligible</td>
+<td id="T_5c683_level1_row0" class="row_heading level1 row0" data-quarto-table-cell-role="th">Random list</td>
+<td id="T_5c683_row0_col0" class="data row0 col0">11%</td>
+<td id="T_5c683_row0_col1" class="data row0 col1">10%</td>
+<td id="T_5c683_row0_col2" class="data row0 col2">7%</td>
 </tr>
 <tr class="even">
-<td id="T_6e276_level1_row1" class="row_heading level1 row1" data-quarto-table-cell-role="th">RFV-style (frequency + value ranks)</td>
-<td id="T_6e276_row1_col0" class="data row1 col0">83%</td>
-<td id="T_6e276_row1_col1" class="data row1 col1">74%</td>
-<td id="T_6e276_row1_col2" class="data row1 col2">66%</td>
+<td id="T_5c683_level1_row1" class="row_heading level1 row1" data-quarto-table-cell-role="th">RFV-style (frequency + value ranks)</td>
+<td id="T_5c683_row1_col0" class="data row1 col0">83%</td>
+<td id="T_5c683_row1_col1" class="data row1 col1">74%</td>
+<td id="T_5c683_row1_col2" class="data row1 col2">66%</td>
 </tr>
 <tr class="odd">
-<td id="T_6e276_level1_row2" class="row_heading level1 row2" data-quarto-table-cell-role="th">Prior-year (FY t) giving</td>
-<td id="T_6e276_row2_col0" class="data row2 col0">84%</td>
-<td id="T_6e276_row2_col1" class="data row2 col1">73%</td>
-<td id="T_6e276_row2_col2" class="data row2 col2">66%</td>
+<td id="T_5c683_level1_row2" class="row_heading level1 row2" data-quarto-table-cell-role="th">Prior-year (FY t) giving</td>
+<td id="T_5c683_row2_col0" class="data row2 col0">84%</td>
+<td id="T_5c683_row2_col1" class="data row2 col1">73%</td>
+<td id="T_5c683_row2_col2" class="data row2 col2">66%</td>
 </tr>
 <tr class="even">
-<td rowspan="3" id="T_6e276_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Never-major only</td>
-<td id="T_6e276_level1_row3" class="row_heading level1 row3" data-quarto-table-cell-role="th">Random list</td>
-<td id="T_6e276_row3_col0" class="data row3 col0">10%</td>
-<td id="T_6e276_row3_col1" class="data row3 col1">10%</td>
-<td id="T_6e276_row3_col2" class="data row3 col2">8%</td>
+<td rowspan="3" id="T_5c683_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">Never-major only</td>
+<td id="T_5c683_level1_row3" class="row_heading level1 row3" data-quarto-table-cell-role="th">Random list</td>
+<td id="T_5c683_row3_col0" class="data row3 col0">10%</td>
+<td id="T_5c683_row3_col1" class="data row3 col1">10%</td>
+<td id="T_5c683_row3_col2" class="data row3 col2">8%</td>
 </tr>
 <tr class="odd">
-<td id="T_6e276_level1_row4" class="row_heading level1 row4" data-quarto-table-cell-role="th">RFV-style (frequency + value ranks)</td>
-<td id="T_6e276_row4_col0" class="data row4 col0">71%</td>
-<td id="T_6e276_row4_col1" class="data row4 col1">60%</td>
-<td id="T_6e276_row4_col2" class="data row4 col2">54%</td>
+<td id="T_5c683_level1_row4" class="row_heading level1 row4" data-quarto-table-cell-role="th">RFV-style (frequency + value ranks)</td>
+<td id="T_5c683_row4_col0" class="data row4 col0">71%</td>
+<td id="T_5c683_row4_col1" class="data row4 col1">60%</td>
+<td id="T_5c683_row4_col2" class="data row4 col2">54%</td>
 </tr>
 <tr class="even">
-<td id="T_6e276_level1_row5" class="row_heading level1 row5" data-quarto-table-cell-role="th">Prior-year (FY t) giving</td>
-<td id="T_6e276_row5_col0" class="data row5 col0">75%</td>
-<td id="T_6e276_row5_col1" class="data row5 col1">61%</td>
-<td id="T_6e276_row5_col2" class="data row5 col2">54%</td>
+<td id="T_5c683_level1_row5" class="row_heading level1 row5" data-quarto-table-cell-role="th">Prior-year (FY t) giving</td>
+<td id="T_5c683_row5_col0" class="data row5 col0">75%</td>
+<td id="T_5c683_row5_col1" class="data row5 col1">61%</td>
+<td id="T_5c683_row5_col2" class="data row5 col2">54%</td>
 </tr>
 </tbody>
 </table>
@@ -6688,7 +6688,7 @@ Selected donors who were already major in the prior year: 3.0%
 </section>
 <section id="giving-tiers-reached-by-converters" class="level3">
 <h3 class="anchored" data-anchor-id="giving-tiers-reached-by-converters">Giving tiers reached by converters</h3>
-<div id="191337c7" class="cell" data-execution_count="41">
+<div id="e1417f28" class="cell" data-execution_count="41">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>tier_bins <span class="op">=</span> [MAJOR, <span class="dv">2000</span>, <span class="dv">5000</span>, <span class="dv">10000</span>, <span class="dv">15000</span>, np.inf]</span>
@@ -6701,12 +6701,12 @@ Selected donors who were already major in the prior year: 3.0%
 <style type="text/css">
 </style>
 
-<table id="T_8c0b7" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table id="T_19c4d" class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header">
 <th class="blank level0" data-quarto-table-cell-role="th"> </th>
-<th id="T_8c0b7_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">12-month converters</th>
-<th id="T_8c0b7_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">share</th>
+<th id="T_19c4d_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">12-month converters</th>
+<th id="T_19c4d_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">share</th>
 </tr>
 <tr class="even">
 <th class="index_name level0" data-quarto-table-cell-role="th">amount_next</th>
@@ -6716,29 +6716,29 @@ Selected donors who were already major in the prior year: 3.0%
 </thead>
 <tbody>
 <tr class="odd">
-<td id="T_8c0b7_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">$1,200-1,999</td>
-<td id="T_8c0b7_row0_col0" class="data row0 col0">167</td>
-<td id="T_8c0b7_row0_col1" class="data row0 col1">57%</td>
+<td id="T_19c4d_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">$1,200-1,999</td>
+<td id="T_19c4d_row0_col0" class="data row0 col0">167</td>
+<td id="T_19c4d_row0_col1" class="data row0 col1">57%</td>
 </tr>
 <tr class="even">
-<td id="T_8c0b7_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">$2,000-4,999</td>
-<td id="T_8c0b7_row1_col0" class="data row1 col0">112</td>
-<td id="T_8c0b7_row1_col1" class="data row1 col1">38%</td>
+<td id="T_19c4d_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">$2,000-4,999</td>
+<td id="T_19c4d_row1_col0" class="data row1 col0">112</td>
+<td id="T_19c4d_row1_col1" class="data row1 col1">38%</td>
 </tr>
 <tr class="odd">
-<td id="T_8c0b7_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">$5,000-9,999</td>
-<td id="T_8c0b7_row2_col0" class="data row2 col0">5</td>
-<td id="T_8c0b7_row2_col1" class="data row2 col1">2%</td>
+<td id="T_19c4d_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">$5,000-9,999</td>
+<td id="T_19c4d_row2_col0" class="data row2 col0">5</td>
+<td id="T_19c4d_row2_col1" class="data row2 col1">2%</td>
 </tr>
 <tr class="even">
-<td id="T_8c0b7_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">$10,000-14,999</td>
-<td id="T_8c0b7_row3_col0" class="data row3 col0">5</td>
-<td id="T_8c0b7_row3_col1" class="data row3 col1">2%</td>
+<td id="T_19c4d_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">$10,000-14,999</td>
+<td id="T_19c4d_row3_col0" class="data row3 col0">5</td>
+<td id="T_19c4d_row3_col1" class="data row3 col1">2%</td>
 </tr>
 <tr class="odd">
-<td id="T_8c0b7_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">$15,000+</td>
-<td id="T_8c0b7_row4_col0" class="data row4 col0">4</td>
-<td id="T_8c0b7_row4_col1" class="data row4 col1">1%</td>
+<td id="T_19c4d_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">$15,000+</td>
+<td id="T_19c4d_row4_col0" class="data row4 col0">4</td>
+<td id="T_19c4d_row4_col1" class="data row4 col1">1%</td>
 </tr>
 </tbody>
 </table>
@@ -7323,8 +7323,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class>
 <div class="sourceCode" id="cb58" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> &quot;PBS Utah Major-Donor Prediction: Exploratory Data Analysis&quot;</span></span>
-<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> &quot;IS 6813 MSBA Capstone · Fall 2026&quot;</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> &quot;Individual EDA: PBS Utah Major-Donor Prediction&quot;</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> &quot;IS 6813 MSBA Capstone · Fall 2026 · Individual work&quot;</span></span>
 <span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> &quot;Kate Klinger&quot;</span></span>
 <span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> today</span></span>
 <span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
@@ -7346,7 +7346,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb58-22"><a href="#cb58-22" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb58-23"><a href="#cb58-23" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Introduction</span></span>
 <span id="cb58-24"><a href="#cb58-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb58-25"><a href="#cb58-25" aria-hidden="true" tabindex="-1"></a>This EDA supports the team&#39;s business problem statement, summarized below. Section 13 checks the statement&#39;s assumptions against the data.</span>
+<span id="cb58-25"><a href="#cb58-25" aria-hidden="true" tabindex="-1"></a>This is my **individual** exploratory data analysis. It feeds into the team&#39;s group EDA. It supports the team&#39;s business problem statement, summarized below. Section 13 checks the statement&#39;s assumptions against the data.</span>
 <span id="cb58-26"><a href="#cb58-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb58-27"><a href="#cb58-27" aria-hidden="true" tabindex="-1"></a><span class="fu">### Business problem</span></span>
 <span id="cb58-28"><a href="#cb58-28" aria-hidden="true" tabindex="-1"></a>Congress eliminated federal funding for public broadcasting in 2025, leaving PBS Utah with an estimated recurring shortfall of about \$2 million per year. Major donors, who give **\$1,200 or more annually**, are described as about 1% of the donor file but about 19% of donor revenue. PBS Utah has no reliable, data-driven way to identify which current non-major donors are most likely to become major donors, or at what giving level.</span>

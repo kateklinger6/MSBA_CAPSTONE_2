@@ -1,6 +1,6 @@
 ---
-title: "PBS Utah Major-Donor Prediction: Exploratory Data Analysis"
-subtitle: "IS 6813 MSBA Capstone · Fall 2026"
+title: "Individual EDA: PBS Utah Major-Donor Prediction"
+subtitle: "IS 6813 MSBA Capstone · Fall 2026 · Individual work"
 author: "Kate Klinger"
 date: today
 format:
@@ -22,7 +22,7 @@ jupyter: python3
 
 ## 1. Introduction
 
-This EDA supports the team's business problem statement, summarized below. Section 13 checks the statement's assumptions against the data.
+This is my **individual** exploratory data analysis. It feeds into the team's group EDA. It supports the team's business problem statement, summarized below. Section 13 checks the statement's assumptions against the data.
 
 ### Business problem
 Congress eliminated federal funding for public broadcasting in 2025, leaving PBS Utah with an estimated recurring shortfall of about \$2 million per year. Major donors, who give **\$1,200 or more annually**, are described as about 1% of the donor file but about 19% of donor revenue. PBS Utah has no reliable, data-driven way to identify which current non-major donors are most likely to become major donors, or at what giving level.

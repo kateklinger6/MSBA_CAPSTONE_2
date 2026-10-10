@@ -31,7 +31,7 @@ Congress eliminated federal funding for public broadcasting in 2025, leaving PBS
 **Milestones:** initial results November 11, 2026; final project December 2, 2026.
 
 ## What the EDA found about the problem statement
-Section 13 of the report tests the statement against the data:
+Section 13 of the individual EDA tests the statement against the data:
 - **Major-donor share:** major donors are **0.25–0.38% of donors and 5–11% of revenue**, not the 1% and 19% in the statement.
 - **Eligible population:** active **and lapsed** donors (ever gave, under \$1,200 in the snapshot year). Lapsed donors are 75% of eligible donor-years but 8% of converters (24 of 293), mostly returning former majors, so results are reported by segment.
 - **The 25% target:** recall in the top 10% is already exceeded by simple rules. Ranking by prior-year giving reaches 84% (12-month) and 73% (3-year), and the RFV baseline reaches 83% and 74%. The target should be to beat the prior-year-giving baseline, measured at a list of about 1,000 and for never-major donors.
@@ -41,8 +41,9 @@ Section 13 of the report tests the statement against the data:
 - **Passport:** kept as a candidate input with a "no record" level. Its raw link to conversion is mostly a status effect and fades once giving is held fixed, so it should be tested with and without in the model.
 
 ## Contents
-- `notebooks/EDA_PBS_Utah_Donors.qmd`: exploratory data analysis (Quarto source, Python)
-- `notebooks/EDA_PBS_Utah_Donors.html`: rendered, self-contained report with all outputs
+- `notebooks/EDA_Individual_Kate_Klinger.qmd`: my individual exploratory data analysis (Quarto source, Python)
+- `notebooks/EDA_Individual_Kate_Klinger.html`: rendered, self-contained copy of the individual EDA with all outputs
+- The group EDA, which combines individual analyses, will be added separately
 - `docs/data_dictionary_combined.md`: every variable in all nine tables, with definitions, profile, and EDA status (use / drop / leaks); CSV copy alongside
 
 ## Data
@@ -60,5 +61,5 @@ Requires [Quarto](https://quarto.org) and Python with `pandas numpy matplotlib s
 
 ```bash
 cd notebooks
-quarto render EDA_PBS_Utah_Donors.qmd
+quarto render EDA_Individual_Kate_Klinger.qmd
 ```
