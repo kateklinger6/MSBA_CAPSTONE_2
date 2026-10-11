@@ -2,12 +2,12 @@
 
 Every variable in the nine course tables, with its profile from the data and how the EDA recommends treating it. Definitions combine the course dictionaries with what the EDA found in the data. Machine-readable copy: `data_dictionary_combined.csv`.
 
-**EDA status key:**
-- **Key / link:** an ID used to join tables.
-- **Use:** a usable feature or input.
-- **Use with care:** usable with the caveat noted.
-- **Leaks — exclude:** reflects FY2026 outcomes, so it would leak the answer.
-- **Drop:** constant, blank, a placeholder, or redundant.
+EDA status key:
+- Key / link: an ID used to join tables.
+- Use: a usable feature or input.
+- Use with care: usable with the caveat noted.
+- Leaks — exclude: reflects FY2026 outcomes, so it would leak the answer.
+- Drop: constant, blank, a placeholder, or redundant.
 
 | Status | Variables |
 |---|---:|
@@ -29,13 +29,13 @@ constituents_w_memberships (Constituent ID)
  └── cultivation.synthetic_id ── officer_portfolios.portfolio_id
 ```
 
-**Rows to remove before any analysis:**
+Rows to remove before any analysis:
 - Payment and soft-credit IDs starting `SYN-DEF-`, and legacy accounts starting `SYN-UNMATCHED-`. All are copies of real rows with one field broken.
 - 79 exact-duplicate soft credits.
 
 ## `constituents_w_memberships.csv`
 
-One row per person or organization; status as of end of FY2026. **196,167 rows, 22 columns.**
+One row per person or organization; status as of end of FY2026. 196,167 rows, 22 columns.
 
 | Variable | Type | Missing | Unique | Example | Description | EDA status |
 |---|---|---:|---:|---|---|---|
@@ -64,7 +64,7 @@ One row per person or organization; status as of end of FY2026. **196,167 rows, 
 
 ## `unite_payments.csv`
 
-One row per payment, FY2021–FY2026. **1,722,698 rows, 13 columns.**
+One row per payment, FY2021–FY2026. 1,722,698 rows, 13 columns.
 
 | Variable | Type | Missing | Unique | Example | Description | EDA status |
 |---|---|---:|---:|---|---|---|
@@ -84,7 +84,7 @@ One row per payment, FY2021–FY2026. **1,722,698 rows, 13 columns.**
 
 ## `soft_credits.csv`
 
-One row per soft credit (org-paid gift credited to a person), FY2021–FY2026. **4,145 rows, 9 columns.**
+One row per soft credit (org-paid gift credited to a person), FY2021–FY2026. 4,145 rows, 9 columns.
 
 | Variable | Type | Missing | Unique | Example | Description | EDA status |
 |---|---|---:|---:|---|---|---|
@@ -100,7 +100,7 @@ One row per soft credit (org-paid gift credited to a person), FY2021–FY2026. *
 
 ## `team_approach_legacy_payments.csv`
 
-One row per old-system household gift, FY1984–FY2020. **1,202,857 rows, 44 columns.**
+One row per old-system household gift, FY1984–FY2020. 1,202,857 rows, 44 columns.
 
 | Variable | Type | Missing | Unique | Example | Description | EDA status |
 |---|---|---:|---:|---|---|---|
@@ -151,7 +151,7 @@ One row per old-system household gift, FY1984–FY2020. **1,202,857 rows, 44 col
 
 ## `campaign_codes.csv`
 
-One row per marketing code. **29,249 rows, 17 columns.**
+One row per marketing code. 29,249 rows, 17 columns.
 
 | Variable | Type | Missing | Unique | Example | Description | EDA status |
 |---|---|---:|---:|---|---|---|
@@ -175,7 +175,7 @@ One row per marketing code. **29,249 rows, 17 columns.**
 
 ## `campaign_members.csv`
 
-One row per solicitation, FY2021–FY2026. **5,233,404 rows, 8 columns.**
+One row per solicitation, FY2021–FY2026. 5,233,404 rows, 8 columns.
 
 | Variable | Type | Missing | Unique | Example | Description | EDA status |
 |---|---|---:|---:|---|---|---|
@@ -190,7 +190,7 @@ One row per solicitation, FY2021–FY2026. **5,233,404 rows, 8 columns.**
 
 ## `passport_viewing.csv`
 
-One row per person × fiscal year × genre with viewing. **444,741 rows, 5 columns.**
+One row per person × fiscal year × genre with viewing. 444,741 rows, 5 columns.
 
 | Variable | Type | Missing | Unique | Example | Description | EDA status |
 |---|---|---:|---:|---|---|---|
@@ -202,7 +202,7 @@ One row per person × fiscal year × genre with viewing. **444,741 rows, 5 colum
 
 ## `cultivation.csv`
 
-One row per donor selected for officer contact in a year, FY2022–FY2025. **4,000 rows, 7 columns.**
+One row per donor selected for officer contact in a year, FY2022–FY2025. 4,000 rows, 7 columns.
 
 | Variable | Type | Missing | Unique | Example | Description | EDA status |
 |---|---|---:|---:|---|---|---|
@@ -216,7 +216,7 @@ One row per donor selected for officer contact in a year, FY2022–FY2025. **4,0
 
 ## `officer_portfolios.csv`
 
-One row per officer portfolio. **8 rows, 4 columns.**
+One row per officer portfolio. 8 rows, 4 columns.
 
 | Variable | Type | Missing | Unique | Example | Description | EDA status |
 |---|---|---:|---:|---|---|---|
