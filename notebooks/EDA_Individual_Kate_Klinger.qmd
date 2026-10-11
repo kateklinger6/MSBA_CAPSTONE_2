@@ -1093,3 +1093,36 @@ pd.DataFrame({"12-month converters": tiers, "share": tiers / tiers.sum()}).style
 - Should success count first-time major donors only, or also returning former majors?
 - How far back should lapsed donors be considered? Should 6+ year lapses be scored at all?
 - Where do the "1% of donors, 19% of revenue" figures come from, and do they use a different definition of major donor?
+
+
+### AI Use Note:
+I used Claude Code as the majority tool. It was used to help write and run the code, draft the write-up, and check results. I directed the analysis, chose the definitions, and reviewed the findings.
+
+How the results were verified
+
+Data integrity
+  Checked that each table’s documented key is unique.
+  Tested every link between tables.
+  Found and quantified the defective duplicate rows: 36,044 payments, 113 soft credits, and 216,128 legacy rows. I confirmed each one matches a real   record on every column except the broken field.
+Reconciliation
+  After removing the defective rows, organization hard-credit payments matched deduplicated soft credits to the dollar (exactly for FY2021–24). This   confirmed they are the same money and should be counted once.
+Refund check
+  Searched all payment tables for negative amounts, refund or reversal fields, and non-“Paid” statuses. None were found, and the $0 rows were          confirmed to be defective copies.
+Leakage checks
+  Cross-tabulated the end-of-data snapshot fields against FY2025–26 giving. This showed the sustainer flag, giving group, major-donor class, and       UofU dollar fields are built from future giving, so they were excluded.
+Independent comparison
+  Compared key numbers with a teammate’s separate analysis, which used different tools (Polars). The main results matched:
+    269 12-month converters among active donors (0.17%)
+    3-year and 5-year conversion rates of 0.36% and 0.55%
+    former major donors making up 51% of converters
+Fair comparisons
+  Passport viewing and campaign response were compared within the same giving level, not just overall, so they would not be confused with giving       status.
+  The cultivation effect was measured with the random holdout group, with large gifts capped at $2,000 so a few outliers would not dominate.           Standard errors are reported.
+Robustness
+  Baseline ranking rules were evaluated separately for each snapshot year, not just pooled, to show year-to-year variation.
+  Random tie-breaking used a fixed seed so results reproduce exactly.
+Text-to-output checks
+  After each rendering, every number quoted in the write-up was checked against the code output, and statements that didn’t match were corrected.
+Reproducibility
+  The full report re-renders from the raw data with zero code errors (41 code chunks, 12 charts, 32 tables).
+  The README gives step-by-step instructions to reproduce it.
