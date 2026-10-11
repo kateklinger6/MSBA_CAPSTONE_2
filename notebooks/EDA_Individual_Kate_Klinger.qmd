@@ -9,11 +9,12 @@ format:
     toc-depth: 3
     toc-location: left
     number-sections: false
-    code-fold: true
-    code-tools: true
+    code-fold: false
+    code-tools: false
     embed-resources: true
     df-print: default
 execute:
+  echo: true
   warning: false
   message: false
 jupyter: python3
