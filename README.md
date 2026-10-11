@@ -43,7 +43,6 @@ Section 13 of the individual EDA tests the statement against the data:
 ## Contents
 - `notebooks/EDA_Individual_Kate_Klinger.qmd`: my individual exploratory data analysis (Quarto source, Python)
 - `notebooks/EDA_Individual_Kate_Klinger.html`: rendered, self-contained copy of the individual EDA with all outputs
-- The group EDA, which combines individual analyses, will be added separately
 - `docs/data_dictionary_combined.md`: every variable in all nine tables, with definitions, profile, and EDA status (use / drop / leaks); CSV copy alongside
 
 ## Data
