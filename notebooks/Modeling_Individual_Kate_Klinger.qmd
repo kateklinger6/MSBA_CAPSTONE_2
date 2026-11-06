@@ -1,0 +1,939 @@
+---
+title: "Individual Modeling: PBS Utah Major-Donor Prediction"
+subtitle: "IS 6813 MSBA Capstone · Fall 2026 · Individual work"
+author: "Kate Klinger"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    number-sections: false
+    code-fold: false
+    code-tools: false
+    embed-resources: true
+    df-print: default
+execute:
+  echo: true
+  warning: false
+  message: false
+jupyter: python3
+---
+
+## 1. Introduction
+
+This is my individual modeling notebook for the PBS Utah major-donor project. It builds on my individual EDA (`EDA_Individual_Kate_Klinger.qmd`), which defined the eligible population, built the donor-year panel, flagged leaking fields, and measured how well simple ranking rules already work.
+
+### The business problem
+Congress eliminated federal funding for public broadcasting in 2025, leaving PBS Utah with an estimated shortfall of about \$2 million a year. Donors who give \$1,200 or more in a fiscal year (major donors) are a small group but an important source of revenue. Development staff need a ranked list of current non-major donors most likely to become major donors, so that limited officer time goes where it is most likely to pay off.
+
+### The analytic question
+At the end of each fiscal year *t*, every person who has given at some point (Unite or legacy history) and gave less than \$1,200 in FY *t* is eligible. Using only information available at that date, rank eligible donors by their probability of giving \$1,200+ in FY *t + 1*. The 3-year window and the giving tier are secondary questions.
+
+### What counts as success
+The EDA showed that the statement's original target (25% of converters in the top 10%) is already exceeded by sorting donors on last year's giving. So the bar here is the baselines themselves:
+
+- Primary: recall at K = 1,000 (the share of next-year converters in the top 1,000, which is what eight officer portfolios of 125 can cultivate), on years the model never saw, compared with ranking by prior-year giving and by 3-year total giving.
+- Same comparison for never-major donors, the group where a model adds the most because staff do not already know them.
+- Supporting: PR-AUC (ranking quality across the whole list), precision and lift at 1,000, recall in the top 10%, and calibration.
+
+### Summary of results
+- Backtested on two held-out years (FY2024 and FY2025 snapshots), a regularized logistic regression puts 77% of next-year converters in its top 1,000. Ranking by prior-year giving reaches 69% and by 3-year total 73%. PR-AUC roughly doubles (0.29 vs. 0.10–0.17).
+- For never-major donors, recall at 1,000 rises from 49% (prior-year giving) to 58%.
+- The extra converters come almost entirely from donors giving \$100–250 who have a soft credit, a long giving record, or a past major year. The baselines rank these donors below hundreds of \$600 donors.
+- LightGBM and an ensemble perform the same as the logistic model, so the simpler, explainable model is recommended. Passport viewing and solicitation counts add nothing measurable.
+- Caveats: about 60 converters a year means differences of a few points are within noise; more than half of converters were contacted by an officer; tiers above \$1,200 cannot be predicted much better than by guessing the lowest tier.
+
+## 2. Setup and data preparation
+
+```{python}
+from pathlib import Path
+import itertools
+import time
+
+import lightgbm as lgb
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+import numpy as np
+import pandas as pd
+from scipy.stats import binomtest
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+DATA_DIR = Path("../data/tables")  # folder holding the course CSVs
+OUT_DIR = Path("../data/outputs")  # scored lists are written here (not committed)
+MAJOR = 1200   # major-donor threshold: $1,200+ in a fiscal year
+K = 1000       # prospect-list size: 8 portfolios x 125 donors
+SEED = 6813
+
+pd.set_option("display.max_columns", 50)
+pd.set_option("display.width", 160)
+pd.set_option("display.float_format", "{:,.3f}".format)
+plt.rcParams.update({"figure.dpi": 110, "axes.spines.top": False, "axes.spines.right": False,
+                     "axes.grid": True, "grid.color": "#e6e6e3", "grid.linewidth": 0.6, "axes.axisbelow": True})
+
+# colors: models get categorical hues (validated for color-vision deficiency); baselines are recessive greys
+C_LOGIT, C_LGB, C_ENS = "#2a78d6", "#eb6834", "#1baf7a"
+C_BASE = {"Prior-year giving": "#55554f", "3-year total": "#8b8b84", "RFV score": "#b3b3ac", "Random": "#d4d4cf"}
+DASH = {"Prior-year giving": "--", "3-year total": ":", "RFV score": "-.", "Random": (0, (1, 3))}
+
+
+def to_fy(dates):
+    # PBS Utah fiscal years run July-June; FY2026 = July 2025 - June 2026
+    dates = pd.to_datetime(dates)
+    return dates.dt.year + (dates.dt.month >= 7).astype(int)
+```
+
+The data come from the [course repository](https://github.com/jefftwebb/donor_prediction_capstone_project) (synthetic; no row is a real person). The large tables are stored with Git LFS and are not committed here. The cleaning rules are the ones documented in the EDA:
+
+- Drop defective copies of real rows: payments and soft credits whose IDs start `SYN-DEF-`, and legacy rows whose account starts `SYN-UNMATCHED-`.
+- Drop exact-duplicate soft credits and non-positive amounts.
+- Drop organization hard-credit payments, which duplicate the soft credits credited to people.
+- A donor's fiscal-year giving is personal payments plus soft credits. Legacy (pre-FY2021) household gifts are credited to each linked person as history only.
+
+```{python}
+t0 = time.time()
+con = pd.read_csv(DATA_DIR / "constituents_w_memberships.csv", low_memory=False,
+                  usecols=["Constituent ID", "Age", "Gender", "Address State", "Primary Constituent Type"])
+pay = pd.read_csv(DATA_DIR / "unite_payments.csv",
+                  usecols=["donor_id", "credit_date", "payment_amount", "pledge_gift_type", "gift_type", "payment_id"])
+soft = pd.read_csv(DATA_DIR / "soft_credits.csv")
+legacy = pd.read_csv(DATA_DIR / "team_approach_legacy_payments.csv",
+                     usecols=["ta_account_id", "gift_date", "payment_amount", "constituent_id_1", "constituent_id_2"])
+members = pd.read_csv(DATA_DIR / "campaign_members.csv", usecols=["constituent_id", "responded", "campaign_start_date"],
+                      dtype={"constituent_id": "category", "campaign_start_date": "category"})
+passport = pd.read_csv(DATA_DIR / "passport_viewing.csv")
+cult = pd.read_csv(DATA_DIR / "cultivation.csv")
+
+pay["fy"] = to_fy(pay["credit_date"])
+soft["fy"] = to_fy(soft["Credit Date"])
+legacy["fy"] = to_fy(legacy["gift_date"])
+members["fy"] = pd.to_datetime(members["campaign_start_date"].astype(str)).dt.year + 1  # FY marker
+
+# cleaning rules from the EDA (Sections 4-5)
+org_ids = set(con.loc[con["Primary Constituent Type"] == "Organization", "Constituent ID"])
+n_raw = len(pay), len(soft), len(legacy)
+pay = pay[~pay["payment_id"].str.startswith("SYN-DEF-") & (pay["payment_amount"] > 0) & ~pay["donor_id"].isin(org_ids)]
+soft = soft[~soft["Credit ID"].str.startswith("SYN-DEF-")].drop_duplicates()
+soft = soft[soft["Credit Amount"] > 0].rename(columns={"Soft Credit Constituent ID": "donor_id", "Credit Amount": "amount"})
+legacy = legacy[~legacy["ta_account_id"].str.startswith("SYN-UNMATCHED")]
+print(f"Rows kept after cleaning: payments {len(pay):,} of {n_raw[0]:,}; soft credits {len(soft):,} of {n_raw[1]:,}; "
+      f"legacy {len(legacy):,} of {n_raw[2]:,}")
+
+gifts = pd.concat([
+    pay[["donor_id", "fy", "payment_amount"]].rename(columns={"payment_amount": "amount"}),
+    soft[["donor_id", "fy", "amount"]],
+])
+wide = gifts.groupby(["donor_id", "fy"])["amount"].sum().unstack(fill_value=0)          # Unite giving FY2021-26
+leg_long = legacy.melt(id_vars=["fy", "payment_amount"], value_vars=["constituent_id_1", "constituent_id_2"],
+                       value_name="donor_id").dropna(subset=["donor_id"])
+legacy_wide = leg_long.groupby(["donor_id", "fy"])["payment_amount"].sum().unstack(fill_value=0)  # household credit
+hist = wide.add(legacy_wide, fill_value=0).fillna(0)
+hist = hist[sorted(hist.columns)]  # donor x FY1984-FY2026
+print(f"Giving history: {hist.shape[0]:,} people x {hist.shape[1]} fiscal years (FY{hist.columns.min()}-FY{hist.columns.max()})")
+```
+
+### Donor-year panel and features
+
+```{python}
+# donor-year detail tables (each keyed by donor_id, fy)
+pay_dy = pay.assign(rec=pay["pledge_gift_type"].eq("Recurring"), upg=pay["gift_type"].eq("Upgrade"),
+                    new=pay["gift_type"].isin(["New", "Rejoin"])).groupby(["donor_id", "fy"]).agg(
+    n_payments=("payment_amount", "size"), any_recurring=("rec", "max"), recurring_share=("rec", "mean"),
+    any_upgrade_gift=("upg", "max"), new_or_rejoin=("new", "max"))
+max_gift = gifts.groupby(["donor_id", "fy"])["amount"].max().rename("max_gift").to_frame()
+soft_dy = soft.assign(daf=soft["Hard Credit Org Type"].eq("DAF Sponsor")).groupby(["donor_id", "fy"]).agg(
+    soft_amount_t=("amount", "sum"), daf_t=("daf", "max"))
+first_soft = soft.groupby("donor_id")["fy"].min()
+sol = members.groupby(["constituent_id", "fy"], observed=True).agg(
+    n_solicited=("responded", "size"), n_responded=("responded", "sum")).reset_index()
+sol["constituent_id"] = sol["constituent_id"].astype(str)
+sol = sol.rename(columns={"constituent_id": "donor_id"}).set_index(["donor_id", "fy"])
+pv = passport.groupby(["constituent_id", "fiscal_year"]).agg(
+    pp_titles=("titles_viewed", "sum"), pp_genres=("genre", "nunique"), pp_pct_watched=("mean_percent_watched", "mean"))
+pv.index.names = ["donor_id", "fy"]
+contacted = set(zip(cult.loc[cult["contacted"], "synthetic_id"], cult.loc[cult["contacted"], "fiscal_year"]))
+
+H, gave = hist.values, hist.values > 0
+col_ix = {c: i for i, c in enumerate(hist.columns)}
+STATUS = ["Active", "Lapsed 1-2 yrs", "Lapsed 3-5 yrs", "Lapsed 6+ yrs"]
+
+panel = []
+for t in range(2021, 2027):  # FY2026 is the scoring year: features only, no outcome yet
+    j = col_ix[t]
+    keep = gave[:, : j + 1].any(axis=1) & (H[:, j] < MAJOR)   # ever gave by FY t, under $1,200 in FY t
+    P, G = H[keep, : j + 1], gave[keep, : j + 1]              # history through FY t only
+    d = pd.DataFrame(index=hist.index[keep])
+    d["fy"] = t
+    d["amount_t"], d["amount_t1"], d["amount_t2"] = P[:, -1], P[:, -2], P[:, -3]
+    d["amount_3yr"] = P[:, -3:].sum(axis=1)
+    d["change_t"] = d["amount_t"] - d["amount_t1"]
+    d["years_gave_last5"] = G[:, -5:].sum(axis=1)
+    last_ix = j - np.argmax(G[:, ::-1], axis=1)
+    d["years_since_last_gift"] = j - last_ix
+    d["last_year_amount"] = P[np.arange(len(P)), last_ix]
+    d["tenure_years"] = j - np.argmax(G, axis=1)
+    d["lifetime_giving"] = P.sum(axis=1)
+    d["n_years_gave"] = G.sum(axis=1)
+    prior_major = P[:, :-1] >= MAJOR
+    d["max_annual_prior"] = P[:, :-1].max(axis=1)
+    d["former_major"] = prior_major.any(axis=1)
+    d["n_major_years"] = prior_major.sum(axis=1)
+    d["years_since_major"] = np.where(d["former_major"], 1 + np.argmax(prior_major[:, ::-1], axis=1), 99)
+    d["status"] = np.select([d["years_since_last_gift"] == 0, d["years_since_last_gift"] <= 2,
+                             d["years_since_last_gift"] <= 5], STATUS[:3], STATUS[3])
+    future = H[keep, j + 1:]                                  # outcomes: FY t+1 onward
+    d["amount_next"] = future[:, 0] if future.shape[1] else np.nan
+    d["conv_12m"] = (future[:, 0] >= MAJOR).astype(float) if future.shape[1] else np.nan
+    d["conv_3yr"] = (future[:, :3] >= MAJOR).any(axis=1).astype(float) if future.shape[1] >= 3 else np.nan
+    panel.append(d)
+panel = pd.concat(panel).rename_axis("donor_id").reset_index()
+for tab in [pay_dy, max_gift, soft_dy, sol, pv]:
+    panel = panel.join(tab, on=["donor_id", "fy"])
+fill0 = ["n_payments", "recurring_share", "max_gift", "soft_amount_t", "n_solicited", "n_responded"]
+panel[fill0] = panel[fill0].fillna(0)
+for c in ["any_recurring", "any_upgrade_gift", "new_or_rejoin", "daf_t"]:
+    panel[c] = panel[c].fillna(False).astype(bool)
+panel["soft_credit_t"] = panel["soft_amount_t"] > 0
+panel["soft_credit_ever"] = panel["fy"] >= panel["donor_id"].map(first_soft).fillna(9999)
+panel["pp_viewed"] = panel["pp_titles"].notna()           # no record = unknown, kept as its own level
+panel["age_at_t"] = panel["donor_id"].map(con.set_index("Constituent ID")["Age"]) - (2026 - panel["fy"])
+panel["status"] = pd.Categorical(panel["status"], STATUS, ordered=True)
+panel["status_code"] = panel["status"].cat.codes
+panel["contacted_t"] = pd.MultiIndex.from_frame(panel[["donor_id", "fy"]]).isin(list(contacted))  # not a feature
+panel["y"] = panel["conv_12m"]
+
+# baseline scores and a fixed random tie-breaker (many donors give exactly $600)
+panel["tiebreak"] = np.random.default_rng(SEED).random(len(panel))
+panel["rfv_score"] = panel.groupby("fy")["years_gave_last5"].rank(pct=True) + panel.groupby("fy")["amount_t"].rank(pct=True)
+
+lab = panel[panel["fy"] <= 2025].copy()   # snapshots with a known 12-month outcome
+summary = lab.groupby("fy").agg(eligible=("y", "size"), converters=("y", "sum"), rate=("y", "mean"),
+                                never_major_converters=("y", lambda s: s[~lab.loc[s.index, "former_major"]].sum()),
+                                converters_3yr=("conv_3yr", "sum"))
+summary.loc["FY2026 (scoring)"] = [int((panel["fy"] == 2026).sum()), np.nan, np.nan, np.nan, np.nan]
+summary.style.format({"eligible": "{:,.0f}", "converters": "{:,.0f}", "rate": "{:.3%}",
+                      "never_major_converters": "{:,.0f}", "converters_3yr": "{:,.0f}"}, na_rep="–")
+```
+
+The panel reproduces the EDA exactly: 293 twelve-month converters across the FY2021–FY2025 snapshots (about 0.046% of eligible donor-years), and 391 three-year converters for FY2021–FY2023. FY2026 donors are scored at the end (Section 13) but have no outcome yet.
+
+### Features
+Every feature is computed from FY *t* or earlier. The groups follow the EDA's recommendations:
+
+- Giving history: amounts in FY *t*, *t-1*, *t-2*; 3-year total; change from last year; largest single gift; number of payments; years given in the last five; years since last gift; last giving year's amount; tenure (legacy included); lifetime giving; years ever given.
+- Major-giving history: highest prior annual total, former-major flag, number of past major years, years since the last major year (99 = never).
+- Gift mix: recurring (sustainer) flag and share, upgrade gift, new/rejoin gift, soft credit and DAF gift in FY *t*, soft-credit amount, any soft credit to date.
+- Status (active, lapsed 1–2, 3–5, 6+ years) and age at *t* (snapshot age rolled back).
+- Candidate engagement inputs, to be tested: solicitations and responses in FY *t*; Passport titles, genres, share watched, and a has-record flag. A missing Passport record is left missing rather than set to zero.
+
+Excluded to prevent leakage: `Annual Giving Group`, `Major Donor Class`, the sustainer snapshot flag, and the UofU dollar fields, all of which encode FY2025–26 giving. Cultivation fields are also excluded, because officer contact changes the outcome (EDA Section 11). Gender and state are kept out of the model and used only to audit the list.
+
+```{python}
+GIVING = ["amount_t", "amount_t1", "amount_t2", "amount_3yr", "change_t", "max_gift", "n_payments",
+          "years_gave_last5", "years_since_last_gift", "last_year_amount", "tenure_years", "lifetime_giving",
+          "n_years_gave", "max_annual_prior", "former_major", "years_since_major", "n_major_years", "status_code",
+          "any_recurring", "recurring_share", "any_upgrade_gift", "new_or_rejoin",
+          "soft_credit_t", "soft_amount_t", "daf_t", "soft_credit_ever", "age_at_t"]
+SOLICIT = ["n_solicited", "n_responded"]
+PASSPORT = ["pp_viewed", "pp_titles", "pp_genres", "pp_pct_watched"]
+FEATS = GIVING + SOLICIT + PASSPORT
+print(f"{len(FEATS)} candidate features: {len(GIVING)} giving/demographic, {len(SOLICIT)} solicitation, {len(PASSPORT)} Passport")
+lab[FEATS].describe().T[["mean", "50%", "max"]].rename(columns={"50%": "median"})
+```
+
+## 3. Validation design and evaluation metrics
+
+Rows must never be split at random. A donor appears in several snapshot years, and the deployed model will always score a year it has not seen. I use a rolling-origin backtest. To score snapshot *t*, the model is trained only on snapshots before *t*, whose outcomes were all known by the end of FY *t*. That is exactly what staff would have had on the prediction date.
+
+The four folds are split into two roles so that model choices do not peek at the final results:
+
+- Development folds (FY2022 and FY2023 snapshots) are used for every choice: hyperparameters, model family, and the recommended model.
+- Test folds (FY2024 and FY2025 snapshots) are looked at only after those choices are fixed. FY2025 → FY2026 is the influx year, so it is also a stress test.
+
+Ties are broken at random with a fixed seed, because about 265 donors a year give exactly \$600.
+
+```{python}
+DEV, TEST = [2022, 2023], [2024, 2025]
+folds = pd.DataFrame([
+    {"fold": f"FY{t}", "role": "development" if t in DEV else "test",
+     "train snapshots": f"FY2021-{t - 1}" if t > 2022 else "FY2021",
+     "train outcomes observed through": f"FY{t}",
+     "test snapshot (prediction date)": f"end of FY{t}", "test outcome": f"FY{t + 1} giving",
+     "train converters": int(lab.loc[lab["fy"] < t, "y"].sum()), "test converters": int(lab.loc[lab["fy"] == t, "y"].sum())}
+    for t in DEV + TEST])
+folds
+```
+
+```{python}
+def top_k_mask(score, tiebreak, k):
+    # rank by score, break ties at random (fixed seed), flag the top k
+    order = np.lexsort((-tiebreak, -score))
+    mask = np.zeros(len(score), bool)
+    mask[order[:k]] = True
+    return mask
+
+
+def metrics(df, score, target="y", k=K):
+    df = df.dropna(subset=[target])
+    y, s = df[target].values, df[score].values
+    top = top_k_mask(s, df["tiebreak"].values, k)
+    top10 = top_k_mask(s, df["tiebreak"].values, int(np.ceil(0.10 * len(df))))
+    return {"recall@250": y[top_k_mask(s, df["tiebreak"].values, 250)].sum() / y.sum(),
+            f"recall@{k:,}": y[top].sum() / y.sum(), f"precision@{k:,}": y[top].mean(),
+            f"lift@{k:,}": y[top].mean() / y.mean(), "recall top 10%": y[top10].sum() / y.sum(),
+            "PR-AUC": average_precision_score(y, s), "ROC-AUC": roc_auc_score(y, s)}
+```
+
+## 4. Benchmarks
+
+Four benchmarks, all computed from the same panel:
+
+- Random list: the floor.
+- RFV score: rank of years given in the last five plus rank of FY *t* giving.
+- Prior-year giving: the EDA's strongest simple rule and the main bar.
+- 3-year total giving: the strongest rule on the test years.
+
+```{python}
+BASELINES = {"Random": "tiebreak", "RFV score": "rfv_score", "3-year total": "amount_3yr", "Prior-year giving": "amount_t"}
+rows = [{"fy": t, "model": name, **metrics(lab[lab["fy"] == t], col)} for t in DEV + TEST for name, col in BASELINES.items()]
+bench = pd.DataFrame(rows)
+bench["split"] = np.where(bench["fy"].isin(DEV), "development", "test")
+fmt = {"recall@250": "{:.0%}", "recall@1,000": "{:.0%}", "precision@1,000": "{:.1%}", "lift@1,000": "{:,.0f}x",
+       "recall top 10%": "{:.0%}", "PR-AUC": "{:.3f}", "ROC-AUC": "{:.3f}"}
+bench.groupby(["split", "model"]).mean(numeric_only=True).drop(columns="fy").reindex(list(BASELINES), level="model").style.format(fmt)
+```
+
+## 5. Candidate models
+
+Two model families, chosen for a rare outcome with only 55–205 positive cases in each training set:
+
+- Logistic regression with an L2 penalty. Dollar amounts are log-transformed, and giving-band dummies (\$100–249, \$250–599, \$600–1,199) let it capture the jump at \$600 that the EDA found. It is fast, stable with few positives, and each prediction can be explained as a sum of contributions.
+- LightGBM (gradient-boosted trees) on the raw features. It can find interactions and thresholds by itself, but with so few positives it can overfit, so the grid includes very shallow trees.
+
+I did not use class weights or resampling. They change the probability scale without changing the ranking much, and calibrated probabilities are useful for staff (Section 7).
+
+```{python}
+LOGIT_LOG = ["amount_t", "amount_t1", "amount_t2", "amount_3yr", "max_gift", "last_year_amount", "lifetime_giving",
+             "max_annual_prior", "soft_amount_t", "n_payments"]
+LOGIT_RAW = ["years_gave_last5", "years_since_last_gift", "tenure_years", "n_years_gave", "n_major_years", "recurring_share"]
+LOGIT_FLAG = ["former_major", "any_recurring", "any_upgrade_gift", "new_or_rejoin", "soft_credit_t", "daf_t", "soft_credit_ever"]
+
+
+def logit_design(df, groups=("giving", "solicit", "passport")):
+    # the logistic model needs explicit shape: log dollars, giving-band dummies, capped recency, status dummies
+    X = pd.DataFrame(index=df.index)
+    if "giving" in groups:
+        for c in LOGIT_LOG:
+            X["log_" + c] = np.log1p(df[c].clip(lower=0))
+        for c in LOGIT_RAW:
+            X[c] = df[c]
+        for c in LOGIT_FLAG:
+            X[c] = df[c].astype(float)
+        X["years_since_major"] = np.minimum(df["years_since_major"], 10)
+        X["age_at_t"] = df["age_at_t"].fillna(df["age_at_t"].median())
+        for lo, hi in [(100, 250), (250, 600), (600, 1200)]:
+            X[f"band_{lo}_{hi - 1}"] = ((df["amount_t"] >= lo) & (df["amount_t"] < hi)).astype(float)
+        for s in range(1, 4):
+            X[f"status_{STATUS[s]}"] = (df["status_code"] == s).astype(float)
+    if "solicit" in groups:
+        X["log_n_solicited"] = np.log1p(df["n_solicited"])
+        X["n_responded"] = df["n_responded"]
+    if "passport" in groups:
+        X["pp_viewed"] = df["pp_viewed"].astype(float)
+        X["log_pp_titles"] = np.log1p(df["pp_titles"].fillna(0))
+        X["pp_genres"] = df["pp_genres"].fillna(0)
+        X["pp_pct_watched"] = df["pp_pct_watched"].fillna(0)
+    return X
+
+
+LABELS = {
+    "log_amount_t": "FY t giving", "log_amount_t1": "FY t-1 giving", "log_amount_t2": "FY t-2 giving",
+    "log_amount_3yr": "3-year total", "log_max_gift": "largest single gift", "log_last_year_amount": "last giving year's amount",
+    "log_lifetime_giving": "lifetime giving", "log_max_annual_prior": "highest prior annual total",
+    "log_soft_amount_t": "soft-credit amount", "log_n_payments": "payments in FY t", "years_gave_last5": "years given (last 5)",
+    "years_since_last_gift": "years since last gift", "tenure_years": "tenure", "n_years_gave": "years ever given",
+    "n_major_years": "past major years", "recurring_share": "share of recurring payments", "former_major": "former major donor",
+    "any_recurring": "sustainer in FY t", "any_upgrade_gift": "upgrade gift", "new_or_rejoin": "new / rejoin gift",
+    "soft_credit_t": "soft credit in FY t", "daf_t": "DAF gift in FY t", "soft_credit_ever": "any soft credit to date",
+    "years_since_major": "years since a major year", "age_at_t": "age",
+    "band_100_249": "gave $100-249 in FY t", "band_250_599": "gave $250-599 in FY t", "band_600_1199": "gave $600-1,199 in FY t",
+    "status_Lapsed 1-2 yrs": "lapsed 1-2 yrs", "status_Lapsed 3-5 yrs": "lapsed 3-5 yrs", "status_Lapsed 6+ yrs": "lapsed 6+ yrs",
+    "log_n_solicited": "solicitations", "n_responded": "campaign responses", "pp_viewed": "Passport record",
+    "log_pp_titles": "Passport titles", "pp_genres": "Passport genres", "pp_pct_watched": "Passport share watched",
+}
+
+
+def fit_logit(train, C=0.1, groups=("giving", "solicit", "passport")):
+    m = make_pipeline(StandardScaler(), LogisticRegression(C=C, max_iter=3000))
+    m.fit(logit_design(train, groups), train["y"])
+    m.predict_risk = lambda df: m.predict_proba(logit_design(df, groups))[:, 1]
+    return m
+
+
+LGB_BASE = dict(objective="binary", learning_rate=0.03, subsample=0.8, subsample_freq=1, reg_lambda=5,
+                verbose=-1, random_state=SEED, n_jobs=4)
+
+
+def fit_lgb(train, feats=FEATS, **params):
+    m = lgb.LGBMClassifier(**(LGB_BASE | params))
+    m.fit(train[feats].astype(float), train["y"])
+    m.predict_risk = lambda df: m.predict_proba(df[feats].astype(float))[:, 1]
+    return m
+```
+
+### Tuning on the development folds only
+
+```{python}
+def dev_score(make_model):
+    # mean metrics over the two development folds (train on earlier snapshots, score the next one)
+    out = []
+    for t in DEV:
+        te = lab[lab["fy"] == t].copy()
+        te["s"] = make_model(lab[lab["fy"] < t]).predict_risk(te)
+        out.append(metrics(te, "s") | {"never-major recall@1,000": metrics(te[~te["former_major"]], "s")["recall@1,000"]})
+    return pd.DataFrame(out).mean()
+
+
+grid_logit = pd.DataFrame({C: dev_score(lambda tr: fit_logit(tr, C=C)) for C in [0.01, 0.03, 0.1, 0.3, 1.0]}).T
+grid_logit.index.name = "C (inverse L2 penalty)"
+grid_logit[["PR-AUC", "recall@1,000", "never-major recall@1,000", "ROC-AUC"]].style.format("{:.3f}")
+```
+
+```{python}
+lgb_grid = [dict(num_leaves=nl, min_child_samples=mc, n_estimators=ne, colsample_bytree=cs)
+            for nl, mc, ne, cs in itertools.product([3, 7, 15], [50, 200, 500], [150, 400], [0.5, 0.8])]
+grid_lgb = pd.DataFrame([p | dev_score(lambda tr, p=p: fit_lgb(tr, **p)).to_dict() for p in lgb_grid])
+grid_lgb = grid_lgb.sort_values("PR-AUC", ascending=False).reset_index(drop=True)
+print(f"{len(lgb_grid)} LightGBM settings tried; top 8 by development PR-AUC:")
+grid_lgb.head(8)[["num_leaves", "min_child_samples", "n_estimators", "colsample_bytree",
+                  "PR-AUC", "recall@1,000", "never-major recall@1,000"]].style.format(
+    {"PR-AUC": "{:.3f}", "recall@1,000": "{:.3f}", "never-major recall@1,000": "{:.3f}", "colsample_bytree": "{:.1f}"})
+```
+
+```{python}
+best_C = float(grid_logit["PR-AUC"].idxmax())
+best_lgb = grid_lgb.iloc[0][["num_leaves", "min_child_samples", "n_estimators", "colsample_bytree"]].to_dict()
+best_lgb = {k: (int(v) if k != "colsample_bytree" else float(v)) for k, v in best_lgb.items()}
+print("Selected logistic C:", best_C)
+print("Selected LightGBM:", best_lgb)
+```
+
+The selection rule was set before looking at the test folds: highest mean PR-AUC on the development folds. PR-AUC was chosen over recall@1,000 because with about 50 converters per development fold, recall@1,000 moves in 2-point steps and many settings tie.
+
+- Logistic regression: C = 0.3. PR-AUC is nearly flat across C (0.184–0.194), so the penalty hardly matters with this much data.
+- LightGBM: three-leaf trees, 150 rounds, half the features per tree. The deeper trees in the grid did no better, which suggests the signal is close to additive. That matches the logistic model doing as well.
+
+## 6. Results on held-out years
+
+```{python}
+MODELS = {"Logistic regression": lambda tr: fit_logit(tr, C=best_C),
+          "LightGBM": lambda tr: fit_lgb(tr, **best_lgb)}
+COLS = {"Logistic regression": "logit", "LightGBM": "lgb", "Ensemble (rank average)": "ens"}
+
+scored = []
+for t in DEV + TEST:  # every fold trains only on earlier snapshots
+    te = lab[lab["fy"] == t].copy()
+    tr = lab[lab["fy"] < t]
+    for name, make in MODELS.items():
+        te[COLS[name]] = make(tr).predict_risk(te)
+    te["ens"] = (te["logit"].rank(pct=True) + te["lgb"].rank(pct=True)) / 2
+    scored.append(te)
+scored = pd.concat(scored)
+SCORES = BASELINES | COLS
+SEGMENTS = {"All eligible": lambda d: d, "Never-major": lambda d: d[~d["former_major"]],
+            "Active": lambda d: d[d["status"] == "Active"], "Lapsed": lambda d: d[d["status"] != "Active"]}
+
+rows = []
+for t, te in scored.groupby("fy"):
+    for seg, f in SEGMENTS.items():
+        for name, col in SCORES.items():
+            rows.append({"fy": t, "segment": seg, "model": name, **metrics(f(te), col)})
+res = pd.DataFrame(rows)
+res["split"] = np.where(res["fy"].isin(DEV), "development", "test")
+order = list(SCORES)
+test_tab = res[(res["split"] == "test") & (res["segment"] == "All eligible")].groupby("model").mean(numeric_only=True).drop(columns="fy").reindex(order)
+test_tab.style.format(fmt).set_caption("Test years FY2024 and FY2025 (mean of the two folds), all eligible donors")
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(9, 4.5))
+ks = np.unique(np.r_[np.arange(50, 1000, 50), np.arange(1000, 5001, 250)])
+test_years = scored[scored["fy"].isin(TEST)]
+for name, col in SCORES.items():
+    curve = [np.mean([te["y"].values[top_k_mask(te[col].values, te["tiebreak"].values, k)].sum() / te["y"].sum()
+                      for _, te in test_years.groupby("fy")]) for k in ks]
+    if name in C_BASE:
+        ax.plot(ks, curve, color=C_BASE[name], ls=DASH[name], lw=2, label=name)
+    else:
+        ax.plot(ks, curve, color={"logit": C_LOGIT, "lgb": C_LGB, "ens": C_ENS}[col], lw=2, label=name)
+ax.axvline(K, color="#55554f", lw=0.8)
+ax.text(K + 40, 0.03, "K = 1,000\n(officer capacity)", fontsize=8, color="#55554f")
+ax.yaxis.set_major_formatter(mtick.PercentFormatter(1))
+ax.xaxis.set_major_formatter(mtick.StrMethodFormatter("{x:,.0f}"))
+ax.set(title="Share of next-year converters captured by list size (test years FY2024-25)",
+       xlabel="Prospect-list size (top K donors)", ylabel="Recall", ylim=(0, 1), xlim=(0, 5000))
+ax.legend(frameon=False, fontsize=8, loc="lower right")
+plt.tight_layout()
+```
+
+```{python}
+seg_tab = res.pivot_table(index=["segment", "model"], columns="split", values=["recall@1,000", "PR-AUC"], aggfunc="mean")
+seg_tab = seg_tab.reindex(list(SEGMENTS), level="segment").reindex(order, level="model")
+seg_tab = seg_tab[[("recall@1,000", "development"), ("recall@1,000", "test"), ("PR-AUC", "development"), ("PR-AUC", "test")]]
+seg_tab.style.format({c: ("{:.0%}" if c[0].startswith("recall") else "{:.3f}") for c in seg_tab.columns})
+```
+
+```{python}
+yr_tab = res[res["segment"].isin(["All eligible", "Never-major"])].pivot_table(index=["segment", "model"], columns="fy", values="recall@1,000")
+yr_tab = yr_tab.reindex(order, level="model")
+yr_tab.columns = [f"FY{c} ({'dev' if c in DEV else 'test'})" for c in yr_tab.columns]
+yr_tab.style.format("{:.0%}").set_caption("Recall@1,000 by fold")
+```
+
+### Is the gain real? Paired comparison against the baselines
+
+With 40–90 converters per year, a 5–8 point gap in recall is only a handful of donors. The fairest test compares the two lists on the same converters. For each converter, did the model's top 1,000 include them, the baseline's top 1,000, both, or neither? Only the converters found by exactly one list carry information. A sign test asks whether the split between "model only" and "baseline only" could plausibly be 50/50.
+
+```{python}
+def paired(df, model_col, base_col, k=K):
+    a = b = 0
+    for _, te in df.groupby("fy"):
+        y = te["y"].values.astype(bool)
+        m = top_k_mask(te[model_col].values, te["tiebreak"].values, k) & y
+        bse = top_k_mask(te[base_col].values, te["tiebreak"].values, k) & y
+        a, b = a + (m & ~bse).sum(), b + (bse & ~m).sum()
+    return a, b
+
+
+rows = []
+for years, label in [(TEST, "Test years (FY2024-25)"), (DEV + TEST, "All four folds")]:
+    for seg in ["All eligible", "Never-major"]:
+        sub = SEGMENTS[seg](scored[scored["fy"].isin(years)])
+        for name in COLS:
+            for base in ["Prior-year giving", "3-year total"]:
+                a, b = paired(sub, COLS[name], BASELINES[base])
+                rows.append({"years": label, "segment": seg, "model": name, "vs. baseline": base,
+                             "converters found only by model": a, "only by baseline": b,
+                             "net gain": a - b, "sign-test p": binomtest(a, a + b).pvalue if a + b else np.nan})
+paired_tab = pd.DataFrame(rows).set_index(["years", "segment", "model", "vs. baseline"])
+paired_tab.style.format({"sign-test p": "{:.3f}"})
+```
+
+Results on the held-out years (FY2024 and FY2025 snapshots)
+
+- All eligible donors: all three models put 77% of next-year converters in the top 1,000, against 69% for prior-year giving, 73% for 3-year total, 66% for RFV, and 1% at random. Precision at 1,000 rises from 4.6% to 5.2% (a lift of about 100x over random). Recall in the top 10% rises from 85% to 88–90%.
+- PR-AUC shows the biggest gain: 0.29–0.31 vs. 0.10 (prior-year giving) and 0.17 (3-year total). The models order donors much better *within* the top of the list. In the top 250, the logistic model finds 65% of converters vs. 60%.
+- Never-major donors: 58% (logistic) vs. 49% (prior-year giving) and 46% (3-year total).
+- Segment rows rank donors within the segment, as if a separate list of 1,000 were drawn from it. Active donors: 85% vs. 77%. Lapsed donors (only 10–15 converters a year): on a lapsed-only list the models find about a third of them, while prior-year giving finds none because every lapsed donor has \$0 in FY *t*. On the combined list, lapsed donors do not reach the top 1,000 (next subsection).
+- By year: the logistic model matches or beats both baselines in every fold. The largest gain is in the FY2025 → FY2026 influx year (74% vs. 61% for prior-year giving). Baseline recall swings by up to 23 points from year to year, more than the model's gain.
+- Paired test: on the test years, the logistic model found 14 converters the prior-year-giving list missed and missed only 2 it found (p = 0.004). Against the 3-year total the split is 12 vs. 6 (p = 0.24), not significant on two years alone. Across all four folds it is 23 vs. 12 (p = 0.09). LightGBM and the ensemble beat the 3-year total more consistently over four folds (p = 0.02). For never-major donors, every model beats the 3-year total (p ≤ 0.02).
+
+Choosing a model. Under the rule set in advance, development PR-AUC was 0.199 (ensemble), 0.194 (logistic), and 0.185 (LightGBM). These are within 0.01 of each other, which is noise at this sample size, so the simplest model is preferred. Logistic regression is recommended. It ties on the test years, is best for never-major donors, is well calibrated, and its predictions can be explained to staff donor by donor. LightGBM is kept as a cross-check: the two models share 82% of their FY2026 top 1,000 (Section 13).
+
+### Who the model finds that the baseline misses
+
+```{python}
+REC = "logit"  # recommended model (see Section 6 conclusion)
+rows = []
+for _, te in scored[scored["fy"].isin(DEV + TEST)].groupby("fy"):
+    y = te["y"].values.astype(bool)
+    m = top_k_mask(te[REC].values, te["tiebreak"].values, K)
+    bse = top_k_mask(te["amount_t"].values, te["tiebreak"].values, K)
+    rows.append(te.loc[y].assign(model_finds=m[y], baseline_finds=bse[y]))
+conv = pd.concat(rows)
+conv["band"] = pd.cut(conv["amount_t"], [-1, 0, 99, 250, 599, 1199], labels=["$0 (lapsed)", "$1-99", "$100-250", "$251-599", "$600-1,199"])
+conv["group"] = np.select([conv["model_finds"] & ~conv["baseline_finds"], ~conv["model_finds"] & conv["baseline_finds"],
+                           conv["model_finds"] & conv["baseline_finds"]], ["model only", "baseline only", "both"], "neither")
+pd.crosstab([conv["band"]], conv["group"], margins=True)[["both", "model only", "baseline only", "neither", "All"]]
+```
+
+```{python}
+pd.crosstab(conv["group"], [conv["former_major"].map({True: "former major", False: "never major"})]).join(
+    conv.groupby("group")[["soft_credit_ever", "daf_t", "any_upgrade_gift"]].mean().map("{:.0%}".format))
+```
+
+Pooling all four folds (238 converters):
+
+- Both lists find the same 149 converters. Every one of the 133 converters who gave \$600–1,199 in FY *t* is in both lists. Ranking those donors is easy.
+- The model's 25 extra converters are almost all (24) in the \$100–250 band. About half (12) are former major donors whose giving dipped, and 56% have a soft credit on record. A sort on prior-year giving ranks them below every donor who gave more than \$250.
+- The baseline's 7 extra converters mostly gave \$251–599.
+- 57 converters are found by neither list: all 24 lapsed converters, 21 who gave under \$100, and 12 in the \$100–250 band. These donors jumped from a small or lapsed gift straight to \$1,200+ with little warning in the data. No model built on this data is likely to find them reliably.
+
+*Implication:* The model's value is not in re-ranking the \$600 donors. It is in pulling a few dozen lower-giving donors with strong signals (past major giving, soft credits, long tenure) above the long tail of mid-level donors that a dollar-sorted list puts first.
+
+## 7. Calibration
+
+Ranking is the main goal, but probabilities help staff set expectations (e.g., "about 60 of these 1,000 will reach \$1,200"). The table compares mean predicted probability with the actual rate in rank buckets, and expected with actual converters per year, using the out-of-sample predictions from all four folds.
+
+```{python}
+rows = []
+for t, te in scored.groupby("fy"):
+    rank = te[REC].rank(ascending=False, method="first")
+    te = te.assign(bucket=pd.cut(rank, [0, 100, 250, 500, 1000, 5000, np.inf],
+                                 labels=["1-100", "101-250", "251-500", "501-1,000", "1,001-5,000", "5,001+"]))
+    rows.append(te)
+cal = pd.concat(rows)
+cal_tab = cal.groupby("bucket", observed=True).agg(donor_years=("y", "size"), predicted=(REC, "mean"), actual=("y", "mean"),
+                                                   expected_converters=(REC, "sum"), actual_converters=("y", "sum"))
+by_year = cal.groupby("fy").agg(expected=(REC, "sum"), actual=("y", "sum"))
+by_year["ratio actual / expected"] = by_year["actual"] / by_year["expected"]
+brier = {name: brier_score_loss(scored["y"], scored[c]) for name, c in [("Logistic", "logit"), ("LightGBM", "lgb")]}
+brier["Constant base rate (training mean)"] = np.mean([brier_score_loss(te["y"], np.full(len(te), lab.loc[lab["fy"] < t, "y"].mean()))
+                                                       for t, te in scored.groupby("fy")])
+print("Brier score (lower is better):", {k: round(v, 6) for k, v in brier.items()})
+display(by_year.style.format({"expected": "{:,.1f}", "actual": "{:,.0f}", "ratio actual / expected": "{:.2f}"}))
+cal_tab.style.format({"donor_years": "{:,}", "predicted": "{:.2%}", "actual": "{:.2%}", "expected_converters": "{:,.1f}", "actual_converters": "{:,.0f}"})
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(6, 4.5))
+ax.plot(cal_tab["predicted"], cal_tab["actual"], marker="o", ms=8, lw=2, color=C_LOGIT, label="Logistic regression")
+lim = [1e-5, 0.5]
+ax.plot(lim, lim, color="#8b8b84", ls="--", lw=1, label="Perfect calibration")
+for b, r in cal_tab.iterrows():
+    ax.annotate(f"ranks {b}", (r["predicted"], r["actual"]), textcoords="offset points", xytext=(6, -10), fontsize=7, color="#55554f")
+ax.set(xscale="log", yscale="log", xlim=lim, ylim=lim, xlabel="Mean predicted probability", ylabel="Actual conversion rate",
+       title="Calibration by rank bucket (all four folds)")
+ax.xaxis.set_major_formatter(mtick.PercentFormatter(1, decimals=2))
+ax.yaxis.set_major_formatter(mtick.PercentFormatter(1, decimals=2))
+ax.legend(frameon=False, fontsize=8, loc="upper left")
+plt.tight_layout()
+```
+
+- Within the list, the logistic model is well calibrated: the top 100 were predicted at 27.1% and converted at 26.0%, and every bucket down to ranks 5,001+ sits close to the diagonal.
+- Year totals are less stable: actual converters were 0.67x to 1.57x the expected number. The FY2025 → FY2026 influx produced 88 converters against 56 expected. The model's shape holds, but the overall level moves with the year, so staff should treat the total as a rough guide.
+- Both models' Brier scores (0.000393) beat a constant base rate (0.000458), though Brier is dominated by the 99.95% of donors who do not convert.
+
+## 8. What drives the predictions
+
+```{python}
+final_logit = fit_logit(lab, C=best_C)       # refit on all labeled snapshots FY2021-25
+final_lgb = fit_lgb(lab, **best_lgb)
+coef = pd.Series(final_logit[-1].coef_[0], index=logit_design(lab.head()).columns.map(LABELS)).sort_values()
+Xl = lab[FEATS].astype(float)
+contrib = final_lgb.booster_.predict(Xl, pred_contrib=True)[:, :-1]   # SHAP values (log-odds), LightGBM's TreeSHAP
+RAW_LABELS = {"amount_t": "FY t giving", "amount_t1": "FY t-1 giving", "amount_t2": "FY t-2 giving", "amount_3yr": "3-year total",
+              "change_t": "change from FY t-1", "max_gift": "largest single gift", "n_payments": "payments in FY t",
+              "years_gave_last5": "years given (last 5)", "years_since_last_gift": "years since last gift",
+              "last_year_amount": "last giving year's amount", "tenure_years": "tenure", "lifetime_giving": "lifetime giving",
+              "n_years_gave": "years ever given", "max_annual_prior": "highest prior annual total", "former_major": "former major donor",
+              "years_since_major": "years since a major year", "n_major_years": "past major years", "status_code": "donor status",
+              "any_recurring": "sustainer in FY t", "recurring_share": "share of recurring payments", "any_upgrade_gift": "upgrade gift",
+              "new_or_rejoin": "new / rejoin gift", "soft_credit_t": "soft credit in FY t", "soft_amount_t": "soft-credit amount",
+              "daf_t": "DAF gift in FY t", "soft_credit_ever": "any soft credit to date", "age_at_t": "age",
+              "n_solicited": "solicitations", "n_responded": "campaign responses", "pp_viewed": "Passport record",
+              "pp_titles": "Passport titles", "pp_genres": "Passport genres", "pp_pct_watched": "Passport share watched"}
+shap_imp = pd.Series(np.abs(contrib).mean(axis=0), index=[RAW_LABELS[f] for f in FEATS]).sort_values()
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 6.5))
+top_coef = coef[coef.abs().sort_values().index[-15:]]
+axes[0].barh(top_coef.index, top_coef.values, color=[C_LOGIT if v > 0 else "#b3b3ac" for v in top_coef.values], height=0.7)
+for i, v in enumerate(top_coef.values):
+    axes[0].text(max(v, 0), i, f" {v:+.2f}", va="center", ha="left", fontsize=7, color="#55554f")
+axes[0].axvline(0, color="#55554f", lw=0.8)
+axes[0].set(title="Logistic regression: 15 largest standardized coefficients", xlabel="Change in log-odds per 1 SD (blue = raises probability)")
+top_shap = shap_imp.tail(15)
+axes[1].barh(top_shap.index, top_shap.values, color=C_LGB, height=0.7)
+for i, v in enumerate(top_shap.values):
+    axes[1].text(v, i, f" {v:.2f}", va="center", fontsize=7, color="#55554f")
+axes[1].set(title="LightGBM: 15 largest mean |SHAP| values", xlabel="Mean absolute contribution to log-odds")
+for ax in axes:
+    ax.tick_params(axis="y", labelsize=8)
+plt.tight_layout()
+```
+
+```{python}
+# how does the probability move with prior-year giving, holding everything else at observed values?
+grid = [0, 25, 60, 100, 150, 250, 400, 600, 900, 1199]
+active = lab[(lab["fy"] == 2025) & (lab["status"] == "Active")].sample(20_000, random_state=SEED)
+
+
+def set_giving(df, a):
+    # move FY t giving to $a and keep the derived fields consistent (one gift of $a)
+    return df.assign(amount_t=a, amount_3yr=df["amount_3yr"] - df["amount_t"] + a, change_t=a - df["amount_t1"],
+                     max_gift=a, lifetime_giving=df["lifetime_giving"] - df["amount_t"] + a)
+
+
+pdp = pd.DataFrame({name: [m.predict_risk(set_giving(active, a)).mean() for a in grid]
+                    for name, m in [("Logistic regression", final_logit), ("LightGBM", final_lgb)]},
+                   index=pd.Index(grid, name="FY t giving set to ($)"))
+pdp.style.format("{:.2%}").set_caption("Average predicted 12-month conversion if every active FY2025 donor's FY t giving were set to each amount")
+```
+
+Both models are refit on all labeled snapshots (FY2021–FY2025). That is the version used for scoring FY2026.
+
+- Logistic regression: the largest effects are the giving bands (\$250–599 and \$600–1,199 in FY *t*), the largest single gift, years ever given, and giving in FY *t-1* and *t-2*. A soft credit on record and recent major giving also raise the odds. Being a sustainer and making a new or rejoining gift lower them, consistent with the EDA finding that sustainers renew but rarely jump to \$1,200. Coefficients are per standard deviation. The features are correlated (the bands, amounts, and max gift overlap), so individual signs should not be over-read. For example, the \$100–249 band is negative only relative to the other amount terms.
+- LightGBM ranks features the same way: years ever given, lifetime giving, 3-year total, largest gift, years given in the last five, and recency. Solicitations and Passport titles appear, but with small contributions.
+- The partial-dependence table shows the step shape. Holding everything else fixed, average predicted conversion is about 0.03% for active donors giving under \$250, 0.5–0.6% at \$250–400, and 2–4% at \$600 or more. Most of the work is still done by giving level. The model's gain comes from adjusting within those steps using history.
+
+*Implication for the dashboard:* "key drivers" can be shown per donor from the logistic model's contributions (Section 13), in terms staff recognize: giving level, consistency, past major gifts, DAF/soft credits.
+
+## 9. Do Passport viewing and solicitations add anything?
+
+```{python}
+variants = {
+    "Giving history only": dict(groups=("giving",), feats=GIVING),
+    "+ solicitations": dict(groups=("giving", "solicit"), feats=GIVING + SOLICIT),
+    "+ Passport": dict(groups=("giving", "passport"), feats=GIVING + PASSPORT),
+    "All features": dict(groups=("giving", "solicit", "passport"), feats=FEATS),
+}
+rows = []
+for vname, v in variants.items():
+    for t in DEV + TEST:
+        te, tr = lab[lab["fy"] == t].copy(), lab[lab["fy"] < t]
+        te["logit"] = fit_logit(tr, C=best_C, groups=v["groups"]).predict_risk(te)
+        te["lgb"] = fit_lgb(tr, feats=v["feats"], **best_lgb).predict_risk(te)
+        for mname, col in [("Logistic", "logit"), ("LightGBM", "lgb")]:
+            rows.append({"features": vname, "model": mname, "fy": t, **metrics(te, col),
+                         "never-major recall@1,000": metrics(te[~te["former_major"]], col)["recall@1,000"]})
+abl = pd.DataFrame(rows).groupby(["model", "features"]).mean(numeric_only=True)[["PR-AUC", "recall@1,000", "never-major recall@1,000"]]
+abl = abl.reindex(list(variants), level="features")
+abl.style.format({"PR-AUC": "{:.3f}", "recall@1,000": "{:.1%}", "never-major recall@1,000": "{:.1%}"}).set_caption("Mean over all four folds")
+```
+
+The business statement asked whether Passport viewing (and engagement data generally) adds to giving history. Each variant is retrained in every fold.
+
+- Neither Passport nor solicitations improve the models. For the logistic model, giving history alone gives PR-AUC 0.243 and recall@1,000 of 73.0%, the same as all features (0.241 and 73.0%). LightGBM moves from 0.240 to 0.249 with everything added, a gain of less than one converter per fold.
+- For never-major donors, the giving-only logistic model is slightly better (59.5% vs. 54.2%), a difference of about six converters over four folds.
+- This confirms the EDA. Passport's raw association with conversion was a status effect, and once giving history is in the model, viewing carries no extra signal.
+
+*Implication:* The team can drop Passport and solicitation inputs from the production model with no loss. That also removes the dependency on Passport consent and coverage (only half of active donors have a record). Passport remains useful as context in the dashboard, but not as a predictor.
+
+## 10. Robustness checks
+
+### Officer cultivation in the outcomes
+
+```{python}
+rows = []
+for t in DEV + TEST:
+    te, tr = lab[lab["fy"] == t].copy(), lab[lab["fy"] < t]
+    te["full"] = fit_logit(tr, C=best_C).predict_risk(te)
+    te["no_contact"] = fit_logit(tr[~tr["contacted_t"]], C=best_C).predict_risk(te)
+    clean = te[~te["contacted_t"]]   # score only donor-years not contacted by an officer
+    rows.append({"fy": t, "contacted donor-years in test": int(te["contacted_t"].sum()),
+                 "converters among them": int(te.loc[te["contacted_t"], "y"].sum()),
+                 "recall@1,000, trained on all": metrics(clean, "full")["recall@1,000"],
+                 "recall@1,000, trained without contacted rows": metrics(clean, "no_contact")["recall@1,000"],
+                 "prior-year giving": metrics(clean, "amount_t")["recall@1,000"]})
+rob = pd.DataFrame(rows).set_index("fy")
+rob.loc["mean"] = rob.mean()
+rob.style.format({c: "{:.0%}" for c in rob.columns if "recall" in c or "prior" in c} | {c: "{:,.0f}" for c in rob.columns[:2]})
+```
+
+Officers contacted 752 donors a year, and contact raises conversion (EDA Section 11). Contacted donors account for 150 of the 238 converters in the four folds (63%). So part of what any model learns is "who officers chose, and then contacted". To check that the model's ranking is not just reproducing officer choices, I evaluated it only on donors who were not contacted, and retrained it without contacted rows.
+
+- On non-contacted donors, the model's recall@1,000 is 45%, against 40% for prior-year giving. The gap holds outside the officers' own lists. (Recall is lower for everyone here because the easiest converters were contacted.)
+- Removing contacted rows from training changes little (43% vs. 45%). The model is not relying on contact-inflated outcomes.
+
+*Implication:* The model's backtest scores partly measure a world where officers already contacted many of the top prospects. Once the list is used, outcomes will depend on contact. The team's uplift question (for whom contact makes the most difference) remains the natural next step.
+
+### The FY2026 influx
+
+```{python}
+score26 = panel[panel["fy"] == 2026].copy()
+m_all = final_logit
+m_pre = fit_logit(lab[lab["fy"] <= 2024], C=best_C)   # drop the FY2025 -> FY2026 influx year from training
+score26["p_all"], score26["p_pre"] = m_all.predict_risk(score26), m_pre.predict_risk(score26)
+top_all = set(score26.nlargest(K, "p_all")["donor_id"])
+top_pre = set(score26.nlargest(K, "p_pre")["donor_id"])
+print(f"Training rate FY2021-24 snapshots: {lab.loc[lab['fy'] <= 2024, 'y'].mean():.4%}; with FY2025: {lab['y'].mean():.4%}")
+print(f"Overlap of the FY2026 top-{K:,} lists with vs. without the FY2025 snapshot in training: {len(top_all & top_pre) / K:.0%}")
+print(f"Expected FY2027 converters among all eligible: {score26['p_all'].sum():.0f} (with FY2025) vs. {score26['p_pre'].sum():.0f} (without)")
+```
+
+- Adding the FY2025 snapshot (outcomes in the influx year) raises the training conversion rate from 0.041% to 0.046%. It changes the FY2026 top-1,000 list by only 8%. The ranking is stable; the overall level is what shifts.
+- Expected FY2027 converters are 82 with the influx year in training vs. 74 without. Whether FY2027 looks more like FY2026 or like earlier years is unknown, so the 74–82 range is a reasonable expectation to share with staff.
+- I recommend training on all available years (including FY2025) and reporting FY2025 → FY2026 results separately, as the business statement planned.
+
+## 11. The longer window: 3-year conversion
+
+A dedicated 3-year model cannot be backtested honestly here. Training it requires snapshots whose three-year outcomes are complete, and the latest such snapshot (FY2023) has outcomes through FY2026, the end of the data. A model trained on FY2021 and tested on FY2022 would use outcomes from FY2023–24 that were not known at the FY2022 prediction date.
+
+What can be tested cleanly is whether the 12-month score also ranks 3-year converters well. The FY2022 and FY2023 snapshot predictions from Section 6 (trained only on earlier snapshots) are scored against \$1,200+ in any of the next three years. "Late converters" are those who reach \$1,200 in year 2 or 3 but not year 1, the group a long-term nurture list would target.
+
+```{python}
+rows = []
+for t in [2022, 2023]:
+    te = scored[scored["fy"] == t]
+    for name, col in SCORES.items():
+        for seg in ["All eligible", "Never-major"]:
+            sub = SEGMENTS[seg](te)
+            y = sub["conv_3yr"].values
+            r = {"fy": t, "segment": seg, "model": name}
+            for k in [1000, 5000]:
+                r[f"recall@{k:,}"] = y[top_k_mask(sub[col].values, sub["tiebreak"].values, k)].sum() / y.sum()
+            # long-term-only converters: reach $1,200 in t+2 or t+3 but not t+1
+            late = (sub["conv_3yr"] == 1) & (sub["y"] == 0)
+            r["late converters in ranks 1,001-5,000"] = (late.values & top_k_mask(sub[col].values, sub["tiebreak"].values, 5000)
+                                                        & ~top_k_mask(sub[col].values, sub["tiebreak"].values, 1000)).sum() / late.sum()
+            r["PR-AUC (3-yr)"] = average_precision_score(y, sub[col])
+            rows.append(r)
+three = pd.DataFrame(rows).groupby(["segment", "model"]).mean(numeric_only=True).drop(columns="fy").reindex(order, level="model")
+print("3-year converters per snapshot: " + ", ".join(f"FY{t}: {int(scored.loc[scored['fy'] == t, 'conv_3yr'].sum())}" for t in [2022, 2023]) +
+      "; of these, converted only in year 2 or 3: " + ", ".join(
+          f"FY{t}: {int(((scored['fy'] == t) & (scored['conv_3yr'] == 1) & (scored['y'] == 0)).sum())}" for t in [2022, 2023]))
+three.style.format({c: "{:.0%}" for c in three.columns if "recall" in c or "late" in c} | {"PR-AUC (3-yr)": "{:.3f}"})
+```
+
+- The 12-month score is also the best ranking for 3-year conversion: recall@1,000 of 59–61% vs. 56% (3-year total) and 51% (prior-year giving), and PR-AUC 0.24 vs. 0.19. For never-major donors it is 39–41% vs. 29–36%.
+- Late converters are hard to find. Ranks 1,001–5,000 of the model's list contain only about 10% of them. Prior-year giving does a bit better on this slice (19%), because the model concentrates its signal at the very top.
+- More than half of 3-year converters (67 of 126 and 97 of 139) only convert in year 2 or 3. They are a large group, but they look much like everyone else at the prediction date.
+
+*Implication:* The data support a 12-month list and a 3-year evaluation of it, but not a separate long-term model yet. In the dashboard, the "Long-term nurture" segment (ranks 1,001–5,000) should be described as a watch list with low expected yield. Once FY2027 outcomes arrive, a true 3-year model can be trained on FY2021–FY2024 and tested on later snapshots.
+
+## 12. Giving tier
+
+The EDA recommended three tiers: \$1,200–1,999, \$2,000–4,999, and \$5,000+. Among converters only, I compare three ways to predict the tier a converter will reach, using the same rolling folds:
+
+- Always predict the most common tier (\$1,200–1,999).
+- History rule: the tier of the donor's highest prior annual total, or \$1,200–1,999 if never major.
+- Multinomial logistic regression trained on earlier years' converters (balanced class weights), using giving level, max gift, lifetime giving, and DAF/soft-credit flags.
+
+```{python}
+TIERS = ["$1,200-1,999", "$2,000-4,999", "$5,000+"]
+tier_of = lambda a: pd.cut(a, [MAJOR, 2000, 5000, np.inf], labels=TIERS, right=False)
+cv = lab[lab["y"] == 1].copy()
+cv["tier"] = tier_of(cv["amount_next"])
+cv["hist_tier"] = np.where(cv["max_annual_prior"] >= MAJOR, tier_of(cv["max_annual_prior"].clip(lower=MAJOR)).astype(str), TIERS[0])
+print(cv["tier"].value_counts().reindex(TIERS).to_string())
+
+
+def tier_X(df):
+    return pd.DataFrame({"log_amount_t": np.log1p(df["amount_t"]), "log_max_prior": np.log1p(df["max_annual_prior"]),
+                         "log_max_gift": np.log1p(df["max_gift"]), "log_lifetime": np.log1p(df["lifetime_giving"]),
+                         "former_major": df["former_major"].astype(float), "daf_t": df["daf_t"].astype(float),
+                         "soft_credit_ever": df["soft_credit_ever"].astype(float)}, index=df.index)
+
+
+rows = []
+for t in DEV + TEST:
+    tr, te = cv[cv["fy"] < t], cv[cv["fy"] == t].copy()
+    mn = make_pipeline(StandardScaler(), LogisticRegression(C=1.0, max_iter=3000, class_weight="balanced")).fit(tier_X(tr), tr["tier"].astype(str))
+    te["multinomial"] = mn.predict(tier_X(te))
+    te["majority"] = TIERS[0]
+    rows.append(te)
+tp = pd.concat(rows)
+ti = {t: i for i, t in enumerate(TIERS)}
+tier_res = pd.DataFrame({m: {"exact accuracy": (tp[m] == tp["tier"].astype(str)).mean(),
+                             "within one tier": (abs(tp[m].map(ti) - tp["tier"].astype(str).map(ti)) <= 1).mean(),
+                             "recall, $2,000+ converters": (tp.loc[tp["tier"] != TIERS[0], m] != TIERS[0]).mean(),
+                             "precision, predicted $2,000+": (tp.loc[tp[m] != TIERS[0], "tier"] != TIERS[0]).mean() if (tp[m] != TIERS[0]).any() else np.nan}
+                         for m in ["majority", "hist_tier", "multinomial"]}).T
+tier_res.index = ["Always $1,200-1,999", "Highest prior tier (history rule)", "Multinomial logistic"]
+print(f"Converters in the four test folds: {len(tp)}")
+tier_res.style.format("{:.0%}", na_rep="–")
+```
+
+```{python}
+pd.crosstab(tp["tier"], tp["hist_tier"], rownames=["actual tier"], colnames=["history rule"]).reindex(index=TIERS, columns=TIERS, fill_value=0)
+```
+
+- Tier is barely predictable. Always guessing \$1,200–1,999 is right 53% of the time, and within one tier 94% of the time. Neither the history rule (51%) nor the multinomial model (45%) beats it on exact accuracy.
+- Only the \$1,200 vs. \$2,000+ split carries some signal. When the history rule says \$2,000+, it is right 65% of the time, against a base rate of 47%. It catches 38% of \$2,000+ converters.
+- \$5,000+ cannot be predicted: 33 donors were called \$5,000+ and only 2 got there. Large past totals are often legacy household credit or one-off gifts.
+
+*Implication:* The dashboard should show a two-level "likely tier" (\$1,200–1,999 or \$2,000+, from the donor's own past giving) and label it as a weak indicator. With 14 converters at \$5,000+ in five years, the five-tier scheme in the original statement cannot be supported.
+
+## 13. Scoring FY2026: the working queue
+
+The recommended model (logistic regression, refit on FY2021–FY2025 snapshots) scores the 144,541 donors eligible at the end of FY2026, predicting \$1,200+ in FY2027. Following the dashboard plan:
+
+- Immediate priority: ranks 1–1,000 (one year of officer capacity).
+- Long-term nurture: ranks 1,001–5,000 (a watch list; Section 11 shows its yield is low).
+
+Each donor gets a probability, a two-level likely tier, and the three features that raise their score most. The full queue is written to `data/outputs/` (not committed, like the data).
+
+```{python}
+score26["p_12m"] = final_logit.predict_risk(score26)
+score26["p_lgb"] = final_lgb.predict_risk(score26)
+score26["rank"] = score26["p_12m"].rank(ascending=False, method="first").astype(int)
+score26["segment"] = np.select([score26["rank"] <= K, score26["rank"] <= 5000], ["Immediate priority", "Long-term nurture"], "Not prioritized")
+# tier: two levels only; the backtest (Section 12) shows a $5,000+ call is rarely right
+score26["likely_tier"] = np.where(score26["max_annual_prior"] >= 2000, "$2,000+ (has given that much before)", "$1,200-1,999")
+
+# per-donor drivers: standardized logistic contributions relative to the average eligible donor
+Xs = final_logit[0].transform(logit_design(score26))
+contrib26 = pd.DataFrame(Xs * final_logit[-1].coef_[0], columns=logit_design(score26.head()).columns.map(LABELS), index=score26.index)
+queue = score26[score26["rank"] <= 5000].copy()
+# a positive contribution from "years since a major year" means the major year was recent
+contrib26 = contrib26.rename(columns={"years since a major year": "recent major year"})
+queue["top_drivers"] = [", ".join(r.nlargest(3).index) for _, r in contrib26.loc[queue.index].iterrows()]
+
+seg_sum = score26.groupby("segment").agg(donors=("donor_id", "size"), expected_converters=("p_12m", "sum"),
+                                         mean_probability=("p_12m", "mean"), former_major=("former_major", "mean"),
+                                         active=("status", lambda s: (s == "Active").mean()), median_fy2026_giving=("amount_t", "median"))
+seg_sum = seg_sum.reindex(["Immediate priority", "Long-term nurture", "Not prioritized"])
+seg_sum.style.format({"donors": "{:,}", "expected_converters": "{:,.1f}", "mean_probability": "{:.2%}", "former_major": "{:.0%}",
+                      "active": "{:.0%}", "median_fy2026_giving": "${:,.0f}"})
+```
+
+```{python}
+cols = ["rank", "donor_id", "segment", "p_12m", "likely_tier", "status", "amount_t", "amount_3yr", "former_major", "soft_credit_ever", "top_drivers"]
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+queue[cols].sort_values("rank").to_csv(OUT_DIR / "fy2026_prospect_queue.csv", index=False)
+print(f"Wrote {len(queue):,} ranked donors to {OUT_DIR / 'fy2026_prospect_queue.csv'}")
+print(f"Top-1,000 overlap between logistic and LightGBM: {len(set(score26.nsmallest(K, 'rank')['donor_id']) & set(score26.nlargest(K, 'p_lgb')['donor_id'])) / K:.0%}")
+queue[cols].sort_values("rank").head(10).style.format({"p_12m": "{:.1%}", "amount_t": "${:,.0f}", "amount_3yr": "${:,.0f}"}).hide(axis="index")
+```
+
+### Coverage audit
+
+```{python}
+aud = score26.merge(con[["Constituent ID", "Gender", "Address State"]], left_on="donor_id", right_on="Constituent ID", how="left")
+aud["Utah"] = np.where(aud["Address State"] == "UT", "Utah", "Outside Utah")
+aud["age_band"] = pd.cut(aud["age_at_t"], [0, 50, 65, 80, 120], labels=["<50", "50-64", "65-79", "80+"])
+act = scored[scored["fy"].isin(TEST) & (scored["y"] == 1)].merge(con[["Constituent ID", "Gender", "Address State"]],
+                                                                  left_on="donor_id", right_on="Constituent ID", how="left")
+act["Utah"] = np.where(act["Address State"] == "UT", "Utah", "Outside Utah")
+act["age_band"] = pd.cut(act["age_at_t"], [0, 50, 65, 80, 120], labels=["<50", "50-64", "65-79", "80+"])
+parts = []
+for col in ["Gender", "Utah", "age_band"]:
+    parts.append(pd.DataFrame({"eligible pool": aud[col].value_counts(normalize=True),
+                               "immediate-priority list": aud.loc[aud["segment"] == "Immediate priority", col].value_counts(normalize=True),
+                               "actual converters (test years)": act[col].value_counts(normalize=True)}).assign(attribute=col))
+audit = pd.concat(parts).rename_axis("level").reset_index().set_index(["attribute", "level"])
+audit.style.format("{:.0%}", na_rep="–")
+```
+
+- The model expects about 60 FY2027 converters in the top 1,000 (6% precision), 9 in the nurture band, and 12 spread across the remaining 139,541 donors. The top 1,000 are essentially all active donors (median FY2026 giving \$298), and 14% are former major donors.
+- The highest-ranked donors are active \$600 donors with a past major year and a soft credit, matching the EDA's profile of the likeliest converters.
+- Coverage audit: gender and state are not model inputs, but the list should still be checked. The list's make-up by state and age is close to both the pool and past converters. One gap stands out. Donors with "Unknown" gender are 27% of the list but only 14% of past converters, while men are 30% of the list and 39% of converters. "Unknown" gender reflects record completeness rather than gender itself (EDA Section 8), so this may mean some list members have thin records. The team should look into it before rollout. Gender should not be added as a feature to correct it.
+
+## 14. Findings and what they mean for the project
+
+### What I found
+1. A model beats the best simple rules, modestly. On held-out years, regularized logistic regression captures 77% of next-year converters in the top 1,000, against 69% for prior-year giving and 73% for 3-year total, with PR-AUC 0.29 vs. 0.10–0.17. The gain over prior-year giving is significant (14 vs. 2 discordant converters, p = 0.004). The gain over 3-year total is consistent in direction but not significant on two test years alone.
+2. The gain is largest where staff need it. On a never-major list, recall at 1,000 rises from 46–49% to 58%. On a lapsed-only list the model finds about a third of lapsed converters, who are invisible to a sort on current giving. On the combined list, though, lapsed donors are outranked by active ones.
+3. The extra converters are mid-level donors with strong history. Nearly all of them gave \$100–250 and had a past major year, a soft credit, or a long record. The \$600 donors are found by every method.
+4. Complexity does not pay. LightGBM, an ensemble, and deeper trees match but do not beat the logistic model. The signal is close to additive, and about 60 converters a year limits what any model can learn.
+5. Engagement data add nothing. Passport viewing and solicitation counts do not improve any model once giving history is included.
+6. Probabilities are usable. The model is well calibrated across the list. Yearly totals vary with the overall conversion rate (0.67x to 1.57x of expected), and the FY2026 influx is the high end.
+7. Limits are real. A quarter of converters jump from a small or lapsed gift with no warning in the data. A separate 3-year model cannot be backtested yet. Tiers above \$2,000, and especially \$5,000+, are not predictable. More than half of past converters were contacted by an officer, so backtest results partly reflect existing cultivation.
+
+### What it means for the project
+- Recommended model: logistic regression, retrained each year on all labeled snapshots and scoring all eligible donors. Passport and solicitation inputs can be dropped with no loss (Section 9). Because lapsed donors rarely reach the combined top 1,000, a small separate reactivation list ranked within lapsed donors is worth considering.
+- Success criterion: replace the original 25%-in-top-10% target, which every baseline already exceeds, with "beat prior-year giving and 3-year total at K = 1,000, overall and for never-major donors, on held-out years". On that standard the model succeeds overall and clearly for never-major donors.
+- Dashboard: an Immediate-priority list of 1,000 with probability, a two-level likely tier, and per-donor drivers, plus a Long-term nurture watch list labeled as low-yield. Show the expected number of converters as a range (about 74–82 for FY2027).
+- Group notebook: the team's other models should be compared on the same rolling folds, the same development/test split, and the same paired test, so that differences of a few converters are not mistaken for real improvements.
+- Next steps: (1) an uplift analysis using the randomized holdout, so officers prioritize donors whose conversion changes most with contact; (2) a dedicated 3-year model once FY2027 outcomes arrive; (3) a review of why "Unknown"-gender records are over-represented on the list.
+
+### Limitations
+- The data are synthetic, and some patterns (giving clustered at \$600 and \$1,200) may be sharper than in real PBS data.
+- Each test year has only 49–88 converters. Year-to-year swings in recall (up to 23 points for the baselines) are larger than the model's gain, so results should be read across folds, not from any one year.
+- Outcomes include the effect of officer contact. The robustness check shows the model still beats the baseline on non-contacted donors, but the list's real-world yield will depend on who is contacted.
+
+## AI use note
+
+- Tools used: Claude Code (Anthropic), working in a cloud session on this repository.
+- To what end: it helped write and debug the Python code (data preparation adapted from my EDA, the rolling backtest, model fitting, and evaluation), set up the environment (downloading the course data and rendering with Quarto), and draft the write-up. I chose the framing, success criteria, validation design, and model-selection rule, and reviewed each result and conclusion.
+- How I verified the results:
+  - Reproduction: the donor-year panel reproduces the EDA's counts exactly (293 twelve-month converters, 391 three-year converters, and the same per-year totals), so the data preparation matches the previously checked pipeline.
+  - Data integrity: the downloaded data files were checked against the SHA-256 checksums in the course repository's Git LFS pointers.
+  - No leakage: each fold's training set contains only snapshots whose outcomes were known by the prediction date (Section 3 table). Features use only FY ≤ *t*. Snapshot fields known to leak were excluded.
+  - Honest selection: hyperparameters and the recommended model were chosen on the development folds by a rule fixed in advance; the test folds were used only to report results.
+  - Statistical checks: model-vs-baseline gains are tested with a paired sign test on the same converters, not just compared as percentages, and per-year results are shown so year-to-year noise is visible.
+  - Sanity checks: random ranking gives about 1% recall at 1,000 (as expected for 1,000 of about 130,000 donors). The baseline recalls are within 1–2 points of the EDA's Section 12 results for the same years; the small differences come from random tie-breaking among the many \$600 donors.
+  - Text-to-output check: every number quoted in the write-up was checked against the rendered output, and the notebook re-renders from raw data with no code errors.

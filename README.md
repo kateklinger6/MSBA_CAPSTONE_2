@@ -40,9 +40,19 @@ Section 13 of the individual EDA tests the statement against the data:
 - Inputs: University of Utah engagement and capacity scores are not in the data, and the UofU dollar fields leak future PBS giving.
 - Passport: kept as a candidate input with a "no record" level. Its raw link to conversion is mostly a status effect and fades once giving is held fixed, so it should be tested with and without in the model.
 
+## What the individual modeling found
+The individual modeling notebook backtests models on held-out years (rolling-origin: train on earlier snapshots, score the next; FY2022–23 used for tuning, FY2024–25 for testing):
+- A regularized logistic regression puts 77% of next-year converters in the top 1,000 (officer capacity), against 69% for prior-year giving and 73% for 3-year total. PR-AUC rises from 0.10–0.17 to 0.29. The gain over prior-year giving is significant in a paired test (p = 0.004).
+- For never-major donors, recall at 1,000 rises from 49% to 58%. The extra converters are mostly \$100–250 donors with a past major year, soft credits, or a long giving record.
+- LightGBM and an ensemble do no better, so the simpler logistic model is recommended. Passport viewing and solicitations add nothing measurable once giving history is in the model.
+- Probabilities are well calibrated within the list. Yearly totals swing with the overall rate (the FY2026 influx produced 1.6x the expected converters).
+- Limits: a separate 3-year model cannot be backtested yet; tiers above \$1,200 are barely predictable (a two-level likely tier is recommended); and 63% of past converters were contacted by an officer, so an uplift analysis is the natural next step.
+
 ## Contents
 - `notebooks/EDA_Individual_Kate_Klinger.qmd`: my individual exploratory data analysis (Quarto source, Python)
 - `notebooks/EDA_Individual_Kate_Klinger.html`: rendered, self-contained copy of the individual EDA with all outputs
+- `notebooks/Modeling_Individual_Kate_Klinger.qmd`: my individual modeling notebook: features, time-based backtest, models vs. baselines, calibration, drivers, robustness checks, and a scored FY2026 prospect queue (Quarto source, Python)
+- `notebooks/Modeling_Individual_Kate_Klinger.html`: rendered, self-contained copy of the modeling notebook with code and outputs
 - `docs/data_dictionary_combined.md`: every variable in all nine tables, with definitions, profile, and EDA status (use / drop / leaks); CSV copy alongside
 
 ## Data
@@ -56,9 +66,14 @@ cd donor_prediction_capstone_project && git lfs pull
 Copy or symlink its `tables/` folder to `data/tables/` in this repo, or edit `DATA_DIR` in the report.
 
 ## Rendering
-Requires [Quarto](https://quarto.org) and Python with `pandas numpy matplotlib seaborn scipy jupyter` (about 10 GB of RAM):
+Requires [Quarto](https://quarto.org) and Python with `pandas numpy matplotlib seaborn scipy jupyter` (about 10 GB of RAM). The modeling notebook also needs `scikit-learn lightgbm` and takes about 5 minutes; it writes the scored queue to `data/outputs/` (not committed).
 
 ```bash
 cd notebooks
 quarto render EDA_Individual_Kate_Klinger.qmd
+```
+
+```bash
+cd notebooks
+quarto render Modeling_Individual_Kate_Klinger.qmd
 ```
