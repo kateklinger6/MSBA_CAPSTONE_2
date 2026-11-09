@@ -924,3 +924,24 @@ audit.style.format("{:.0%}", na_rep="–")
 - The data are synthetic, and some patterns (giving clustered at \$600 and \$1,200) may be sharper than in real PBS data.
 - Each test year has only 49–88 converters. Year-to-year swings in recall (up to 23 points for the baselines) are larger than the model's gain, so results should be read across folds, not from any one year.
 - Outcomes include the effect of officer contact. The robustness check shows the model still beats the baseline on non-contacted donors, but the list's real-world yield will depend on who is contacted.
+
+## AI use note
+
+Tools used
+- Claude Code (Anthropic) was the main tool. It ran in a cloud session connected to this GitHub repository.
+
+To what end
+- Code: it wrote and ran most of the Python code. That covers the data preparation (adapted from my EDA), the rolling-origin backtest, the logistic regression and LightGBM models, tuning, evaluation, charts, and the FY2026 scoring.
+- Design: the eligible population, outcome, baselines, list size (K = 1,000), and success criteria come from my EDA and the team's business problem statement. Claude Code proposed the development/test split of the folds, the model-selection rule (highest development PR-AUC, with ties going to the simpler model), and the paired sign test. I reviewed and accepted them.
+- Writing: it drafted the write-up. I reviewed the findings and conclusions and directed revisions.
+- Setup: it downloaded the course data and installed the packages and Quarto needed to render the report.
+
+How the results were verified
+- Reproduction: the donor-year panel reproduces the EDA's counts exactly: 293 twelve-month converters (55, 59, 42, 49, and 88 by snapshot year) and 391 three-year converters. So the data preparation matches the pipeline already checked in the EDA.
+- Data integrity: every downloaded data file was checked against the SHA-256 checksum in the course repository's Git LFS pointer.
+- Leakage: each fold trains only on snapshots whose outcomes were known by the prediction date (table in Section 3). Features use only FY ≤ *t*. Snapshot fields that encode later giving, and cultivation fields, are excluded.
+- Honest model selection: settings and the recommended model were chosen on the development folds (FY2022–23) before the test folds (FY2024–25) were used to report results.
+- Statistical checks: gains over the baselines were tested with a paired sign test on the same converters, and results are shown by year so that year-to-year noise is visible.
+- Sanity checks: random ranking captures about 1% of converters at K = 1,000, as expected. The baseline recalls are within 1–2 points of the EDA's Section 12 results for the same years. The small differences come from random tie-breaking among the many \$600 donors.
+- Reproducibility: rendering the notebook twice from the raw data gave identical results, with no code errors.
+- Text-to-output check: every number quoted in the write-up was checked against the rendered output. Three statements that did not match were corrected: how the lapsed-donor results should be read, the size of year-to-year swings, and the comparison with the EDA's baselines.
